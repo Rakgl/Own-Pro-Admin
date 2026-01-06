@@ -1,8 +1,78 @@
+<script setup lang="ts">
+import { useAuth } from '#imports'
+import { reactive, ref } from 'vue'
+
+definePageMeta({
+  layout: 'blank',
+  auth: {
+    unauthenticatedOnly: true,
+    navigateAuthenticatedTo: '/',
+  },
+})
+
+const { signIn } = useAuth()
+const router = useRouter() // Make sure this is available
+const route = useRoute() // Make sure this is availables
+
+const credentials = reactive({
+  username: '',
+  password: '',
+})
+
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+async function handleAdminLogin() {
+  loading.value = true
+  error.value = null
+
+  try {
+    const result = await signIn(
+      { ...credentials },
+      { callbackUrl: (route.query.callbackUrl as string) || '/' },
+    )
+
+    if (result?.error) {
+      if (result.error === 'CredentialsSignin') {
+        error.value = 'Invalid username or password.'
+      }
+      else if (typeof result.error === 'string') {
+        error.value = result.error
+      }
+      else {
+        error.value = 'Login failed. Please check your credentials.'
+      }
+    }
+  }
+  catch (e: any) {
+    console.error('Admin login exception:', e)
+    if (e.data?.message) {
+      error.value = e.data.message
+    }
+    else if (e.message) {
+      error.value = e.message
+    }
+    else {
+      error.value = 'Login failed due to a network or server issue.'
+    }
+  }
+  finally {
+    loading.value = false
+  }
+}
+
+const showPassword = ref(false)
+
+function togglePasswordVisibility() {
+  showPassword.value = !showPassword.value
+}
+</script>
+
 <template>
   <LayoutAuth>
-    <div class="w-full h-full flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
+    <div class="h-full w-full flex flex-col items-center justify-center p-4 lg:p-8 sm:p-6">
       <div
-        class="w-full max-w-md p-6 space-y-6 bg-card text-card-foreground rounded-xl shadow-2xl md:p-10"
+        class="max-w-md w-full rounded-xl bg-card p-6 text-card-foreground shadow-2xl space-y-6 md:p-10"
       >
         <div class="flex justify-center">
           <svg
@@ -22,15 +92,17 @@
         </div>
 
         <div class="grid gap-2 text-center">
-          <h1 class="text-3xl font-bold tracking-tight">Admin Panel Login</h1>
+          <h1 class="text-3xl font-bold tracking-tight">
+            Login!!!
+          </h1>
           <p class="text-balance text-sm text-muted-foreground">
             Welcome back! Please enter your credentials.
           </p>
         </div>
 
-        <form @submit.prevent="handleAdminLogin" class="grid gap-6">
+        <form class="grid gap-6" @submit.prevent="handleAdminLogin">
           <div>
-            <label for="username" class="block text-sm font-medium text-muted-foreground mb-1.5">
+            <label for="username" class="mb-1.5 block text-sm text-muted-foreground font-medium">
               Username
             </label>
             <input
@@ -39,24 +111,24 @@
               type="text"
               placeholder="e.g., adminuser"
               required
-              class="block w-full px-4 py-2.5 border border-input bg-background rounded-lg text-sm shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring disabled:cursor-not-allowed disabled:opacity-50"
-            />
+              class="block w-full border border-input rounded-lg bg-background px-4 py-2.5 text-sm shadow-sm disabled:cursor-not-allowed focus:border-ring disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-ring placeholder-muted-foreground"
+            >
           </div>
 
           <div class="relative">
             <input
-              :type="showPassword ? 'text' : 'password'"
               id="password"
               v-model="credentials.password"
+              :type="showPassword ? 'text' : 'password'"
               placeholder="••••••••"
               required
-              class="block w-full px-4 py-2.5 border border-input bg-background rounded-lg text-sm shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring disabled:cursor-not-allowed disabled:opacity-50 pr-12"
-            />
+              class="block w-full border border-input rounded-lg bg-background px-4 py-2.5 pr-12 text-sm shadow-sm disabled:cursor-not-allowed focus:border-ring disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-ring placeholder-muted-foreground"
+            >
             <button
               type="button"
-              @click="togglePasswordVisibility"
-              class="absolute inset-y-0 right-0 flex items-center justify-center w-12 text-muted-foreground hover:text-foreground focus:outline-none"
+              class="absolute inset-y-0 right-0 w-12 flex items-center justify-center text-muted-foreground hover:text-foreground focus:outline-none"
               aria-label="Toggle password visibility"
+              @click="togglePasswordVisibility"
             >
               <svg
                 v-if="showPassword"
@@ -65,7 +137,7 @@
                 viewBox="0 0 24 24"
                 stroke-width="1.5"
                 stroke="currentColor"
-                class="w-5 h-5"
+                class="h-5 w-5"
               >
                 <path
                   stroke-linecap="round"
@@ -85,7 +157,7 @@
                 viewBox="0 0 24 24"
                 stroke-width="1.5"
                 stroke="currentColor"
-                class="w-5 h-5"
+                class="h-5 w-5"
               >
                 <path
                   stroke-linecap="round"
@@ -99,87 +171,19 @@
           <button
             type="submit"
             :disabled="loading"
-            class="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-4 py-2 mt-2"
+            class="mt-2 h-11 w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground font-semibold ring-offset-background transition-colors disabled:pointer-events-none hover:bg-primary/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
           >
             {{ loading ? 'Signing In...' : 'Sign In' }}
           </button>
 
-          <p v-if="error" class="text-sm text-destructive text-center pt-1">{{ error }}</p>
+          <p v-if="error" class="pt-1 text-center text-sm text-destructive">
+            {{ error }}
+          </p>
         </form>
       </div>
     </div>
   </LayoutAuth>
 </template>
-
-<script setup lang="ts">
-// The <script setup> section remains the same as the previous version.
-// Make sure imports for reactive, ref, useAuth, definePageMeta, useRouter, useRoute are correct.
-import { reactive, ref } from 'vue';
-import { useAuth } from '#imports'; // Auto-imported
-// Assuming useRouter and useRoute are auto-imported if needed from '#imports' or 'vue-router'
-// If not, explicitly import them: import { useRouter, useRoute } from 'vue-router';
-
-definePageMeta({
-  layout: 'blank', // Or your specific admin blank layout
-  auth: {
-    unauthenticatedOnly: true,
-    navigateAuthenticatedTo: '/', // Adjust to your admin dashboard route
-  },
-});
-
-const { signIn } = useAuth();
-const router = useRouter(); // Make sure this is available
-const route = useRoute(); // Make sure this is available
-
-const credentials = reactive({
-  username: '',
-  password: '',
-});
-
-const loading = ref(false);
-const error = ref<string | null>(null);
-
-async function handleAdminLogin() {
-  loading.value = true;
-  error.value = null;
-
-  try {
-    const result = await signIn(
-      { ...credentials },
-      { callbackUrl: (route.query.callbackUrl as string) || '/' }
-    );
-
-    if (result?.error) {
-      if (result.error === 'CredentialsSignin') {
-        error.value = 'Invalid username or password.';
-      } else if (typeof result.error === 'string') {
-        error.value = result.error;
-      } else {
-        error.value = 'Login failed. Please check your credentials.';
-      }
-    } else if (result?.url) {
-    } else {
-    }
-  } catch (e: any) {
-    console.error('Admin login exception:', e);
-    if (e.data?.message) {
-      error.value = e.data.message;
-    } else if (e.message) {
-      error.value = e.message;
-    } else {
-      error.value = 'Login failed due to a network or server issue.';
-    }
-  } finally {
-    loading.value = false;
-  }
-}
-
-const showPassword = ref(false);
-
-function togglePasswordVisibility() {
-  showPassword.value = !showPassword.value;
-}
-</script>
 
 <style scoped>
 /* The <style scoped> section remains the same as the previous version. */

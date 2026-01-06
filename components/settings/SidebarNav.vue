@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils'
 
 interface Item {
-  title: string;
-  href: string;
+  title: string
+  href: string
 }
 
-const route = useRoute();
+const route = useRoute()
 
 const sidebarNavItems: Item[] = [
   {
@@ -29,7 +29,7 @@ const sidebarNavItems: Item[] = [
   //     title: 'Display',
   //     href: '/settings/display',
   //   },
-];
+]
 </script>
 
 <template>
@@ -41,7 +41,7 @@ const sidebarNavItems: Item[] = [
       :class="
         cn(
           'w-full text-left justify-start items-start',
-          route.path === item.href && 'bg-muted hover:bg-muted'
+          route.path === item.href && 'bg-muted hover:bg-muted',
         )
       "
       as-child

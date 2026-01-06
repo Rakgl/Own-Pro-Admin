@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useSidebar } from '~/components/ui/sidebar';
-import { useAuth } from '#imports'; // Import useAuth from nuxt-auth
+import { useAuth } from '#imports' // Import useAuth from nuxt-auth
+import { computed, ref } from 'vue'
+import { useSidebar } from '~/components/ui/sidebar'
 
 defineProps<{
   user: {
-    name: string;
-    email: string;
-    avatar: string; // This specific prop value for avatar is overridden by useAuth data below
-  };
-}>();
+    name: string
+    email: string
+    avatar: string // This specific prop value for avatar is overridden by useAuth data below
+  }
+}>()
 
-const { isMobile, setOpenMobile } = useSidebar();
-const { signOut, data: authData } = useAuth(); // Destructure data directly
+const { isMobile, setOpenMobile } = useSidebar()
+const { signOut, data: authData } = useAuth() // Destructure data directly
 
-const currentUserName = computed(() => authData.value?.user?.name || 'User');
+const currentUserName = computed(() => authData.value?.user?.name || 'User')
 const currentUserUsername = computed(() =>
-  authData.value?.user?.username ? `@${authData.value.user.username}` : '@username'
-);
-const currentUserAvatarImage = computed(() => authData.value?.user?.image || null); // URL of the avatar image
+  authData.value?.user?.username ? `@${authData.value.user.username}` : '@username',
+)
+const currentUserAvatarImage = computed(() => authData.value?.user?.image || null) // URL of the avatar image
 const currentUserAvatarFallbackColorClass = computed(
-  () => authData.value?.user?.avatar_fallback_color || ''
-);
+  () => authData.value?.user?.avatar_fallback_color || '',
+)
 const predefinedFallbackColors = [
   { name: 'Default', bgClass: '', textClass: 'text-gray-600 dark:text-gray-300', isDefault: true },
   { name: 'Slate', bgClass: 'bg-slate-500', textClass: 'text-white' },
@@ -70,42 +70,42 @@ const predefinedFallbackColors = [
     bgClass: 'bg-gradient-to-br from-amber-400 to-orange-500',
     textClass: 'text-neutral-800',
   },
-];
+]
 
 const currentAvatarStyle = computed(() => {
-  const fallbackColorClass = currentUserAvatarFallbackColorClass.value;
+  const fallbackColorClass = currentUserAvatarFallbackColorClass.value
   const selectedColorMapping = predefinedFallbackColors.find(
-    (c) => c.bgClass === fallbackColorClass
-  );
+    c => c.bgClass === fallbackColorClass,
+  )
 
   if (selectedColorMapping && !selectedColorMapping.isDefault) {
-    return { bg: selectedColorMapping.bgClass, text: selectedColorMapping.textClass };
+    return { bg: selectedColorMapping.bgClass, text: selectedColorMapping.textClass }
   }
   // Default gray gradient style if no specific color or 'Default' is chosen
   return {
     bg: 'bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800',
     text: 'text-gray-600 dark:text-gray-300',
-  };
-});
+  }
+})
 
 const userInitials = computed(() => {
-  const nameStr = currentUserName.value || '';
+  const nameStr = currentUserName.value || ''
   return nameStr
     .split(' ')
-    .map((n) => n[0])
+    .map(n => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2);
-});
+    .slice(0, 2)
+})
 
 async function handleLogout() {
   if (isMobile.value) {
-    setOpenMobile(false);
+    setOpenMobile(false)
   }
-  await signOut({ callbackUrl: '/login' });
+  await signOut({ callbackUrl: '/login' })
 }
 
-const showModalTheme = ref(false);
+const showModalTheme = ref(false)
 </script>
 
 <template>
@@ -125,8 +125,7 @@ const showModalTheme = ref(false);
               />
               <AvatarFallback
                 v-else
-                :class="[
-                  'w-full h-full flex items-center justify-center rounded-lg',
+                class="h-full w-full flex items-center justify-center rounded-lg" :class="[
                   currentAvatarStyle.bg,
                   currentAvatarStyle.text,
                 ]"
@@ -157,8 +156,7 @@ const showModalTheme = ref(false);
                 />
                 <AvatarFallback
                   v-else
-                  :class="[
-                    'w-full h-full flex items-center justify-center rounded-lg',
+                  class="h-full w-full flex items-center justify-center rounded-lg" :class="[
                     currentAvatarStyle.bg,
                     currentAvatarStyle.text,
                   ]"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Sonner } from '@/components/ui/sonner'
 import { ConfigProvider } from 'radix-vue'
+import { Sonner } from '@/components/ui/sonner'
 
 const colorMode = useColorMode()
 
@@ -8,7 +8,11 @@ const color = computed(() => colorMode.value === 'dark' ? '#09090b' : '#ffffff')
 
 const { theme, radius } = useCustomize()
 
+const visibility = useDocumentVisibility()
+const title = computed(() => visibility.value === 'visible' ? 'Own Project' : 'Come back 🥹')
+
 useHead({
+  title,
   meta: [
     { charset: 'utf-8' },
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
@@ -26,7 +30,6 @@ useHead({
   },
 })
 
-const title = 'Nuxt Shadcn UI - Dashboard Template'
 const description = 'This dashboard, built with Nuxt, Shadcn UI, and UnoCSS. It includes a dark mode toggle and is optimized for performance and data efficiency.'
 
 useSeoMeta({

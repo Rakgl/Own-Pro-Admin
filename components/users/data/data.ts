@@ -9,17 +9,17 @@ export const labels = [
   { value: 'bug', label: 'Bug' },
   { value: 'feature', label: 'Feature' },
   { value: 'documentation', label: 'Documentation' },
-];
+]
 
 export const statuses = [
   // For Tasks, keep if still used
   // ... your existing task statuses
-];
+]
 
 export const priorities = [
   // For Tasks, keep if still used
   // ... your existing task priorities
-];
+]
 
 // --- NEW: Data for Role Filters ---
 export const roleStatuses = [
@@ -34,5 +34,5 @@ export const roleStatuses = [
     // icon: h(Icon, { name: 'i-radix-icons-cross-circled' }), // Optional
   },
   // Add other role statuses if applicable
-];
+]
 // --- END: Data for Role Filters ---

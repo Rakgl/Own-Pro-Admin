@@ -3,19 +3,19 @@ import { themes } from '@/lib/registry/themes'
 
 const { theme, radius, setTheme, setRadius } = useCustomize()
 
-type Color =
-  | 'zinc'
-  | 'slate'
-  | 'stone'
-  | 'gray'
-  | 'neutral'
-  | 'red'
-  | 'rose'
-  | 'orange'
-  | 'green'
-  | 'blue'
-  | 'yellow'
-  | 'violet'
+type Color
+  = | 'zinc'
+    | 'slate'
+    | 'stone'
+    | 'gray'
+    | 'neutral'
+    | 'red'
+    | 'rose'
+    | 'orange'
+    | 'green'
+    | 'blue'
+    | 'yellow'
+    | 'violet'
 
 // Create an array of color values
 const allColors: Color[] = [
@@ -40,7 +40,6 @@ watch(theme, () => {
   setClassTheme()
 })
 
-// Whenever the radius value changes, update the document style
 watch(radius, () => {
   setStyleRadius()
 })

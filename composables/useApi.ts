@@ -1,8 +1,7 @@
-// import { useAuth } from '#auth'
 export function useApi() {
-  const config = useRuntimeConfig();
-  const adminApiBase = config.public.adminApiBase;
-  const { token } = useAuth();
+  const config = useRuntimeConfig()
+  const adminApiBase = config.public.adminApiBase
+  const { token } = useAuth()
 
   return $fetch.create({
     baseURL: adminApiBase,
@@ -11,8 +10,8 @@ export function useApi() {
         options.headers = {
           ...options.headers,
           Authorization: `${token.value}`,
-        };
+        }
       }
     },
-  });
+  })
 }

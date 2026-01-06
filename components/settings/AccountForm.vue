@@ -1,36 +1,34 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils';
 // import { Switch } from '@/components/ui/switch'
 // import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { toTypedSchema } from '@vee-validate/zod';
-import { ref, onMounted } from 'vue';
-import * as z from 'zod';
+import { toTypedSchema } from '@vee-validate/zod'
+import { onMounted, ref } from 'vue'
+import * as z from 'zod'
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button'
 import {
   Form,
+  FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
-  FormDescription,
   FormMessage,
-} from '@/components/ui/form';
-import { Separator } from '@/components/ui/separator';
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 
-import { toast } from '~/components/ui/toast';
-import { useApi } from '@/composables/useApi';
+import { useApi } from '@/composables/useApi'
+import { toast } from '~/components/ui/toast'
 
-const username = ref('Loading...');
-const userId = ref<string | null>(null);
+const username = ref('Loading...')
+const userId = ref<string | null>(null)
 
-const isLoading = ref(false);
-const apiError = ref<string | null>(null);
+const isLoading = ref(false)
+const apiError = ref<string | null>(null)
 
 // --- New refs for password visibility ---
-const showCurrentPassword = ref(false);
-const showNewPassword = ref(false);
+const showCurrentPassword = ref(false)
+const showNewPassword = ref(false)
 
 const accountFormSchema = toTypedSchema(
   z.object({
@@ -40,66 +38,71 @@ const accountFormSchema = toTypedSchema(
       .min(8, { message: 'New password must be at least 8 characters.' })
       .optional()
       .or(z.literal('')),
-  })
-);
+  }),
+)
 
 // --- New functions to toggle password visibility ---
 function toggleCurrentPasswordVisibility() {
-  showCurrentPassword.value = !showCurrentPassword.value;
+  showCurrentPassword.value = !showCurrentPassword.value
 }
 
 function toggleNewPasswordVisibility() {
-  showNewPassword.value = !showNewPassword.value;
+  showNewPassword.value = !showNewPassword.value
 }
 
 onMounted(async () => {
-  isLoading.value = true;
-  apiError.value = null;
+  isLoading.value = true
+  apiError.value = null
   try {
-    const api = useApi();
-    const response = await api('auth/get-user');
+    const api = useApi()
+    const response = await api('auth/get-user')
 
     if (response && response.success && response.data) {
-      const userData = response.data;
-      username.value = userData.username || 'N/A';
-      userId.value = userData.id;
-    } else {
-      const errorMessage =
-        response?.message ||
-        'Failed to load user data. API response was not successful or data was missing.';
-      apiError.value = errorMessage;
-      username.value = 'Error loading username';
-      userId.value = null;
+      const userData = response.data
+      username.value = userData.username || 'N/A'
+      userId.value = userData.id
+    }
+    else {
+      const errorMessage
+        = response?.message
+          || 'Failed to load user data. API response was not successful or data was missing.'
+      apiError.value = errorMessage
+      username.value = 'Error loading username'
+      userId.value = null
       toast({
         title: 'Load Error',
         description: errorMessage,
         variant: 'destructive',
-      });
+      })
     }
-  } catch (err: any) {
-    console.error('API call to auth/get-user failed:', err);
-    let errorMessage = 'An unexpected error occurred while fetching user data.';
+  }
+  catch (err: any) {
+    console.error('API call to auth/get-user failed:', err)
+    let errorMessage = 'An unexpected error occurred while fetching user data.'
 
     if (err && err.response && err.response.data && err.response.data.message) {
-      errorMessage = err.response.data.message;
-    } else if (err && err.message) {
-      errorMessage = err.message;
-    } else if (typeof err === 'string') {
-      errorMessage = err;
+      errorMessage = err.response.data.message
+    }
+    else if (err && err.message) {
+      errorMessage = err.message
+    }
+    else if (typeof err === 'string') {
+      errorMessage = err
     }
 
-    apiError.value = errorMessage;
-    username.value = 'Error loading username';
-    userId.value = null;
+    apiError.value = errorMessage
+    username.value = 'Error loading username'
+    userId.value = null
     toast({
       title: 'API Error',
       description: errorMessage,
       variant: 'destructive',
-    });
-  } finally {
-    isLoading.value = false;
+    })
   }
-});
+  finally {
+    isLoading.value = false
+  }
+})
 
 async function onSubmit(values: z.infer<typeof accountFormSchema>) {
   if (!userId.value) {
@@ -107,94 +110,105 @@ async function onSubmit(values: z.infer<typeof accountFormSchema>) {
       title: 'Error',
       description: 'User ID is missing. Cannot update password. Please refresh.',
       variant: 'destructive',
-    });
-    return;
+    })
+    return
   }
 
-  isLoading.value = true;
+  isLoading.value = true
 
   const passwordPayload = {
     current_password: values.currentPassword,
     new_password: values.newPassword,
-  };
+  }
 
   try {
-    const api = useApi();
+    const api = useApi()
     const response = await api(`/users/change-password/${userId.value}`, {
       method: 'PUT',
       body: passwordPayload,
-    });
+    })
 
     if (response && response.data && response.success) {
       toast({
         title: 'Success!',
         description: response.data.message || 'Password updated successfully.',
-      });
+      })
       // Optionally reset form or clear password fields after successful update
       // For example, by resetting vee-validate form if you have a handle to it
       // or manually clearing componentField.value if needed, though often not required
       // for password change forms.
-    } else {
-      let errorMessage = 'Could not update password.';
+    }
+    else {
+      let errorMessage = 'Could not update password.'
       if (response && response.data && typeof response.data.message === 'string') {
-        errorMessage = response.data.message;
-      } else if (response && typeof response.message === 'string') {
-        errorMessage = response.message;
+        errorMessage = response.data.message
+      }
+      else if (response && typeof response.message === 'string') {
+        errorMessage = response.message
       }
       toast({
         title: 'Update Failed',
         description: errorMessage,
         variant: 'destructive',
-      });
+      })
     }
-  } catch (error: any) {
-    console.error('Password update failed:', error);
+  }
+  catch (error: any) {
+    console.error('Password update failed:', error)
 
-    let toastTitle = 'Error';
-    let toastMessage = 'An unexpected error occurred during password update.';
+    let toastTitle = 'Error'
+    let toastMessage = 'An unexpected error occurred during password update.'
 
     if (error && error.data && typeof error.data.message === 'string') {
-      toastMessage = error.data.message;
-      toastTitle = 'Update Failed';
-    } else if (
-      error &&
-      error.response &&
-      error.response.data &&
-      typeof error.response.data.message === 'string'
+      toastMessage = error.data.message
+      toastTitle = 'Update Failed'
+    }
+    else if (
+      error
+      && error.response
+      && error.response.data
+      && typeof error.response.data.message === 'string'
     ) {
-      const errorData = error.response.data;
-      toastMessage = errorData.message;
-      toastTitle = 'Update Failed';
-    } else if (error && typeof error.message === 'string') {
-      toastMessage = error.message;
+      const errorData = error.response.data
+      toastMessage = errorData.message
+      toastTitle = 'Update Failed'
+    }
+    else if (error && typeof error.message === 'string') {
+      toastMessage = error.message
       if (error.statusCode) {
-        toastTitle = `Error ${error.statusCode}`;
+        toastTitle = `Error ${error.statusCode}`
       }
-    } else if (typeof error === 'string') {
-      toastMessage = error;
+    }
+    else if (typeof error === 'string') {
+      toastMessage = error
     }
 
     toast({
       title: toastTitle,
       description: toastMessage,
       variant: 'destructive',
-    });
-  } finally {
-    isLoading.value = false;
+    })
+  }
+  finally {
+    isLoading.value = false
   }
 }
 </script>
 
 <template>
   <div>
-    <div class="flex justify-between items-center mb-4">
+    <div class="mb-4 flex items-center justify-between">
       <div>
-        <h3 class="text-lg font-medium">Account</h3>
-        <p class="text-sm text-muted-foreground">Change the details of your profile here.</p>
+        <h3 class="text-lg font-medium">
+          Account
+        </h3>
+        <p class="text-sm text-muted-foreground">
+          Change the details of your profile here.
+        </p>
       </div>
     </div>
     <Separator />
-    <Form :validation-schema="accountFormSchema" class="space-y-8 mt-6" @submit="onSubmit">
+    <Form :validation-schema="accountFormSchema" class="mt-6 space-y-8" @submit="onSubmit">
       <FormField name="username_display">
         <FormItem>
           <FormLabel>Username</FormLabel>
@@ -226,10 +240,10 @@ async function onSubmit(values: z.infer<typeof accountFormSchema>) {
               type="button"
               variant="ghost"
               size="icon"
-              class="absolute inset-y-0 right-0 h-full px-3 flex items-center text-muted-foreground hover:text-foreground"
-              @click="toggleCurrentPasswordVisibility"
+              class="absolute inset-y-0 right-0 h-full flex items-center px-3 text-muted-foreground hover:text-foreground"
               :aria-label="showCurrentPassword ? 'Hide current password' : 'Show current password'"
               tabindex="-1"
+              @click="toggleCurrentPasswordVisibility"
             >
               <svg
                 v-if="!showCurrentPassword"
@@ -287,10 +301,10 @@ async function onSubmit(values: z.infer<typeof accountFormSchema>) {
               type="button"
               variant="ghost"
               size="icon"
-              class="absolute inset-y-0 right-0 h-full px-3 flex items-center text-muted-foreground hover:text-foreground"
-              @click="toggleNewPasswordVisibility"
+              class="absolute inset-y-0 right-0 h-full flex items-center px-3 text-muted-foreground hover:text-foreground"
               :aria-label="showNewPassword ? 'Hide new password' : 'Show new password'"
               tabindex="-1"
+              @click="toggleNewPasswordVisibility"
             >
               <svg
                 v-if="!showNewPassword"

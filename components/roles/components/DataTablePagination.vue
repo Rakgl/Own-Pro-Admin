@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { Table } from '@tanstack/vue-table';
-import type { Task } from '../data/schema';
+import type { Table } from '@tanstack/vue-table'
+import type { Task } from '../data/schema'
 
 interface DataTablePaginationProps {
-  table: Table<Task>;
+  table: Table<Task>
 }
-defineProps<DataTablePaginationProps>();
+defineProps<DataTablePaginationProps>()
 </script>
 
 <template>
@@ -16,7 +16,9 @@ defineProps<DataTablePaginationProps>();
     </div>
     <div class="flex items-center space-x-6 lg:space-x-8">
       <div class="flex items-center space-x-2">
-        <p class="text-sm font-medium">Rows per page</p>
+        <p class="text-sm font-medium">
+          Rows per page
+        </p>
         <Select
           :model-value="`${table.getState().pagination.pageSize}`"
           @update:model-value="table.setPageSize"

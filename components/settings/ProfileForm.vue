@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'; // Assuming this utility exists
-import { toTypedSchema } from '@vee-validate/zod';
+import { toTypedSchema } from '@vee-validate/zod'
 // import { FieldArray, useForm } from 'vee-validate'; // FieldArray not used in this snippet
-import { useForm } from 'vee-validate';
-import { h, ref, onMounted, computed } from 'vue'; // h not used directly
-import * as z from 'zod';
-import { toast } from '~/components/ui/toast'; // Assuming this composable exists
-import { useApi } from '~/composables/useApi'; // Import your useApi composable
+import { useForm } from 'vee-validate'
+import { computed, onMounted, ref } from 'vue' // h not used directly
+import * as z from 'zod'
+import { cn } from '@/lib/utils' // Assuming this utility exists
+import { toast } from '~/components/ui/toast' // Assuming this composable exists
+import { useApi } from '~/composables/useApi' // Import your useApi composable
 
 const profileFormSchema = toTypedSchema(
   z.object({
@@ -25,8 +25,8 @@ const profileFormSchema = toTypedSchema(
     image: z.string().optional(), // Avatar image URL or base64 data URL
     avatarFallbackColor: z.string().optional(), // Stores the selected Tailwind CSS background class for fallback
     language: z.string().optional(), // Added language field
-  })
-);
+  }),
+)
 
 const defaultFormValues = {
   userId: '',
@@ -38,13 +38,13 @@ const defaultFormValues = {
   image: '',
   avatarFallbackColor: '', // e.g., 'bg-blue-500' or empty for default gray
   language: 'en', // Default language to English
-};
+}
 
 // Define language options
 const languageOptions = ref([
   { value: 'en', label: 'English' },
   { value: 'km', label: 'ភាសាខ្មែរ (Khmer)' }, // Added Khmer
-]);
+])
 
 // Predefined fallback colors for initials
 const predefinedFallbackColors = ref([
@@ -94,135 +94,139 @@ const predefinedFallbackColors = ref([
     bgClass: 'bg-gradient-to-br from-amber-400 to-orange-500',
     textClass: 'text-neutral-800',
   },
-]);
+])
 
 const { handleSubmit, resetForm, setValues, values, setFieldValue } = useForm({
   validationSchema: profileFormSchema,
   initialValues: { ...defaultFormValues },
-});
+})
 
-const isLoading = ref(true);
-const apiError = ref<string | null>(null);
-const isUploading = ref(false);
-const fileInputRef = ref<HTMLInputElement | null>(null);
-const showAvatarOptions = ref(false);
+const isLoading = ref(true)
+const apiError = ref<string | null>(null)
+const isUploading = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const showAvatarOptions = ref(false)
 
 const avatarPreview = computed(() => {
-  const imageValue = values.image;
+  const imageValue = values.image
   if (typeof imageValue === 'string' && imageValue.trim() !== '') {
-    return { type: 'image', src: imageValue };
+    return { type: 'image', src: imageValue }
   }
-  return null;
-});
+  return null
+})
 
 const userInitials = computed(() => {
-  const name = values.name || '';
+  const name = values.name || ''
   return name
     .split(' ')
-    .map((n) => n[0])
+    .map(n => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2);
-});
+    .slice(0, 2)
+})
 
 const currentFallbackStyle = computed(() => {
   const selectedColor = predefinedFallbackColors.value.find(
-    (c) => c.bgClass === values.avatarFallbackColor
-  );
+    c => c.bgClass === values.avatarFallbackColor,
+  )
   if (selectedColor && !selectedColor.isDefault) {
-    return { bg: selectedColor.bgClass, text: selectedColor.textClass };
+    return { bg: selectedColor.bgClass, text: selectedColor.textClass }
   }
   return {
     bg: 'bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800',
     text: 'text-gray-600 dark:text-gray-300',
-  };
-});
+  }
+})
 
-const handleFileUpload = async (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (!file) return;
+async function handleFileUpload(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file)
+    return
 
   if (!file.type.startsWith('image/')) {
     toast({
       title: 'Invalid File',
       description: 'Please select an image file.',
       variant: 'destructive',
-    });
-    return;
+    })
+    return
   }
-  const maxSize = 5 * 1024 * 1024; // 5MB
+  const maxSize = 5 * 1024 * 1024 // 5MB
   if (file.size > maxSize) {
     toast({
       title: 'File Too Large',
       description: 'Please select an image smaller than 5MB.',
       variant: 'destructive',
-    });
-    return;
+    })
+    return
   }
 
-  isUploading.value = true;
+  isUploading.value = true
   try {
-    const reader = new FileReader();
+    const reader = new FileReader()
     reader.onload = (e) => {
-      const base64String = e.target?.result as string;
-      setFieldValue('image', base64String);
-      showAvatarOptions.value = false;
-      toast({ title: 'Image Ready', description: 'Image selected and ready for profile update.' });
-    };
+      const base64String = e.target?.result as string
+      setFieldValue('image', base64String)
+      showAvatarOptions.value = false
+      toast({ title: 'Image Ready', description: 'Image selected and ready for profile update.' })
+    }
     reader.onerror = () => {
       toast({
         title: 'Read Error',
         description: 'Could not read the selected file.',
         variant: 'destructive',
-      });
-    };
-    reader.readAsDataURL(file);
-  } catch (error: any) {
+      })
+    }
+    reader.readAsDataURL(file)
+  }
+  catch (error: any) {
     toast({
       title: 'Processing Failed',
       description: error.message || 'Failed to process image.',
       variant: 'destructive',
-    });
-  } finally {
-    isUploading.value = false;
-    if (fileInputRef.value) fileInputRef.value.value = '';
+    })
   }
-};
+  finally {
+    isUploading.value = false
+    if (fileInputRef.value)
+      fileInputRef.value.value = ''
+  }
+}
 
-const selectFallbackColor = (color: {
-  name: string;
-  bgClass: string;
-  textClass: string;
-  isDefault?: boolean;
-}) => {
-  setFieldValue('avatarFallbackColor', color.bgClass);
-  setFieldValue('image', ''); // Clear any image
+function selectFallbackColor(color: {
+  name: string
+  bgClass: string
+  textClass: string
+  isDefault?: boolean
+}) {
+  setFieldValue('avatarFallbackColor', color.bgClass)
+  setFieldValue('image', '') // Clear any image
   toast({
     title: 'Fallback Color Selected',
     description: `${color.name} color chosen for initials.`,
-  });
-};
+  })
+}
 
-const removeAvatar = () => {
-  setFieldValue('image', '');
-  showAvatarOptions.value = false;
+function removeAvatar() {
+  setFieldValue('image', '')
+  showAvatarOptions.value = false
   toast({
     title: 'Avatar Image Removed',
     description:
       'Avatar image has been removed. Fallback color or default will be used for initials.',
-  });
-};
+  })
+}
 
 onMounted(async () => {
-  isLoading.value = true;
-  apiError.value = null;
+  isLoading.value = true
+  apiError.value = null
   try {
-    const api = useApi();
-    const response = await api('auth/get-user');
+    const api = useApi()
+    const response = await api('auth/get-user')
 
     if (response && response.success && response.data) {
-      const userData = response.data;
+      const userData = response.data
       setValues({
         userId: userData.id,
         name: userData.name || defaultFormValues.name,
@@ -237,111 +241,120 @@ onMounted(async () => {
         avatarFallbackColor:
           (userData as any).avatar_fallback_color || defaultFormValues.avatarFallbackColor,
         language: (userData as any).language || defaultFormValues.language, // Load user language
-      });
-    } else {
-      const errorMessage = response?.message || 'Failed to load user data.';
-      apiError.value = errorMessage;
-      resetForm({ values: { ...defaultFormValues, userId: '' } });
-      toast({ title: 'Load Error', description: errorMessage, variant: 'destructive' });
+      })
     }
-  } catch (err: any) {
-    console.error('API call to auth/get-user failed:', err);
-    const errorMessage = err.message || 'An unexpected error occurred.';
-    apiError.value = errorMessage;
-    resetForm({ values: { ...defaultFormValues, userId: '' } });
-    toast({ title: 'API Error', description: errorMessage, variant: 'destructive' });
-  } finally {
-    isLoading.value = false;
+    else {
+      const errorMessage = response?.message || 'Failed to load user data.'
+      apiError.value = errorMessage
+      resetForm({ values: { ...defaultFormValues, userId: '' } })
+      toast({ title: 'Load Error', description: errorMessage, variant: 'destructive' })
+    }
   }
-});
+  catch (err: any) {
+    console.error('API call to auth/get-user failed:', err)
+    const errorMessage = err.message || 'An unexpected error occurred.'
+    apiError.value = errorMessage
+    resetForm({ values: { ...defaultFormValues, userId: '' } })
+    toast({ title: 'API Error', description: errorMessage, variant: 'destructive' })
+  }
+  finally {
+    isLoading.value = false
+  }
+})
 
 function dataURLtoBlob(dataurl: string): Blob {
-  const arr = dataurl.split(',');
-  const mimeMatch = arr[0].match(/:(.*?);/);
-  if (!mimeMatch) throw new Error('Invalid data URL: MIME type not found');
-  const mime = mimeMatch[1];
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
+  const arr = dataurl.split(',')
+  const mimeMatch = arr[0].match(/:(.*?);/)
+  if (!mimeMatch)
+    throw new Error('Invalid data URL: MIME type not found')
+  const mime = mimeMatch[1]
+  const bstr = atob(arr[1])
+  let n = bstr.length
+  const u8arr = new Uint8Array(n)
   while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
+    u8arr[n] = bstr.charCodeAt(n)
   }
-  return new Blob([u8arr], { type: mime });
+  return new Blob([u8arr], { type: mime })
 }
 
 const onSubmit = handleSubmit(async (formValues) => {
   if (!formValues.userId) {
-    toast({ title: 'Error', description: 'User ID is missing.', variant: 'destructive' });
-    return;
+    toast({ title: 'Error', description: 'User ID is missing.', variant: 'destructive' })
+    return
   }
-  isUploading.value = true; // Use isUploading for the submit button as well
-  const userId = formValues.userId;
+  isUploading.value = true // Use isUploading for the submit button as well
+  const userId = formValues.userId
   try {
-    const formData = new FormData();
-    formData.append('name', formValues.name || '');
-    formData.append('username', formValues.username || '');
-    formData.append('email', formValues.email || '');
+    const formData = new FormData()
+    formData.append('name', formValues.name || '')
+    formData.append('username', formValues.username || '')
+    formData.append('email', formValues.email || '')
     formData.append('bio', formValues.bio || '');
     (formValues.urls || []).forEach((url, index) => {
       if (url.value) {
-        formData.append(`urls[${index}][value]`, url.value);
+        formData.append(`urls[${index}][value]`, url.value)
       }
-    });
-    formData.append('avatar_fallback_color', formValues.avatarFallbackColor || '');
-    formData.append('language', formValues.language || defaultFormValues.language); // Add language to form data
+    })
+    formData.append('avatar_fallback_color', formValues.avatarFallbackColor || '')
+    formData.append('language', formValues.language || defaultFormValues.language) // Add language to form data
 
     if (typeof formValues.image === 'string' && formValues.image.startsWith('data:image')) {
-      const imageBlob = dataURLtoBlob(formValues.image);
-      const extension = imageBlob.type.split('/')[1] || 'png';
-      formData.append('image', imageBlob, `avatar.${extension}`);
-    } else if (formValues.image) {
+      const imageBlob = dataURLtoBlob(formValues.image)
+      const extension = imageBlob.type.split('/')[1] || 'png'
+      formData.append('image', imageBlob, `avatar.${extension}`)
+    }
+    else if (formValues.image) {
       // If it's a URL (already uploaded), send it as is or handle as per your API needs
       // For now, assuming if it's not a data URL and exists, it's a URL to be kept or re-sent.
       // If your backend expects an empty string or a specific signal for "no change" vs "remove", adjust here.
       // If `formValues.image` could be an existing URL that doesn't need to be re-uploaded with user profile update,
       // you might not need to append it unless it changed.
       // This example assumes you always send the current image value.
-      formData.append('image', formValues.image);
-    } else {
-      formData.append('image', ''); // Explicitly send empty if no image
+      formData.append('image', formValues.image)
+    }
+    else {
+      formData.append('image', '') // Explicitly send empty if no image
     }
 
-    const api = useApi();
+    const api = useApi()
     const response = await api(`/users/update-profile/${userId}`, {
       method: 'POST',
       body: formData,
-    });
+    })
 
     if (response && response.success) {
-      toast({ title: 'Success', description: 'Profile updated successfully!' });
+      toast({ title: 'Success', description: 'Profile updated successfully!' })
       if (response.data) {
         if (response.data.image_url !== undefined) {
-          setFieldValue('image', response.data.image_url);
+          setFieldValue('image', response.data.image_url)
         }
         if (response.data.avatar_fallback_color !== undefined) {
-          setFieldValue('avatarFallbackColor', response.data.avatar_fallback_color);
+          setFieldValue('avatarFallbackColor', response.data.avatar_fallback_color)
         }
         if (response.data.language !== undefined) {
           // Update language from response
-          setFieldValue('language', response.data.language);
+          setFieldValue('language', response.data.language)
         }
       }
-    } else {
-      throw new Error(response?.message || 'Failed to update profile.');
     }
-  } catch (error: any) {
-    toast({ title: 'Update Failed', description: error.message, variant: 'destructive' });
-  } finally {
-    isUploading.value = false;
+    else {
+      throw new Error(response?.message || 'Failed to update profile.')
+    }
   }
-});
+  catch (error: any) {
+    toast({ title: 'Update Failed', description: error.message, variant: 'destructive' })
+  }
+  finally {
+    isUploading.value = false
+  }
+})
 </script>
 
 <template>
   <div v-if="isLoading" class="py-8 text-center">
     <p>Loading profile data...</p>
     <div
-      class="mt-2 inline-block w-8 h-8 animate-spin rounded-full border-4 border-current border-t-transparent text-blue-600"
+      class="mt-2 inline-block h-8 w-8 animate-spin border-4 border-current border-t-transparent rounded-full text-blue-600"
       role="status"
     >
       <span class="sr-only">Loading...</span>
@@ -349,7 +362,9 @@ const onSubmit = handleSubmit(async (formValues) => {
   </div>
   <div v-else-if="apiError" class="py-8 text-center text-red-500">
     <p>Error loading profile: {{ apiError }}</p>
-    <Button @click="onMounted" variant="outline" class="mt-4">Retry</Button>
+    <Button variant="outline" class="mt-4" @click="onMounted">
+      Retry
+    </Button>
   </div>
   <form v-else class="space-y-8" @submit.prevent="onSubmit">
     <FormField v-slot="{ field }" name="image">
@@ -364,7 +379,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                   cn(
                     'w-20 h-20 rounded-full flex items-center justify-center font-semibold text-lg transition-all duration-300 hover:scale-105',
                     currentFallbackStyle.bg,
-                    currentFallbackStyle.text
+                    currentFallbackStyle.text,
                   )
                 "
               >
@@ -372,19 +387,19 @@ const onSubmit = handleSubmit(async (formValues) => {
               </div>
               <div
                 v-else-if="avatarPreview && avatarPreview.type === 'image'"
-                class="w-20 h-20 rounded-full overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                class="h-20 w-20 overflow-hidden rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg"
               >
                 <img
                   :src="avatarPreview.src"
                   :alt="values.name || 'Profile picture'"
-                  class="w-full h-full object-cover"
+                  class="h-full w-full object-cover"
                   @error="
                     (e) => {
-                      (e.target as HTMLImageElement).src =
-                        `https://placehold.co/80x80/E0E0E0/B0B0B0?text=${userInitials}`;
+                      (e.target as HTMLImageElement).src
+                        = `https://placehold.co/80x80/E0E0E0/B0B0B0?text=${userInitials}`;
                     }
                   "
-                />
+                >
               </div>
             </div>
 
@@ -393,9 +408,9 @@ const onSubmit = handleSubmit(async (formValues) => {
                 type="button"
                 variant="outline"
                 size="sm"
-                @click="showAvatarOptions = !showAvatarOptions"
                 :disabled="isUploading"
                 class="transition-all duration-200 hover:scale-105"
+                @click="showAvatarOptions = !showAvatarOptions"
               >
                 {{
                   values.image || values.avatarFallbackColor
@@ -408,9 +423,9 @@ const onSubmit = handleSubmit(async (formValues) => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                @click="removeAvatar"
                 :disabled="isUploading"
-                class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-all duration-200 hover:scale-105"
+                class="text-red-500 transition-all duration-200 hover:scale-105 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                @click="removeAvatar"
               >
                 Remove Image
               </Button>
@@ -422,28 +437,28 @@ const onSubmit = handleSubmit(async (formValues) => {
             type="file"
             accept="image/png, image/jpeg, image/gif, image/webp"
             class="hidden"
-            @change="handleFileUpload"
             :disabled="isUploading"
-          />
+            @change="handleFileUpload"
+          >
         </FormControl>
 
         <div
           v-if="showAvatarOptions"
-          class="mt-4 p-4 sm:p-6 border rounded-xl bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 shadow-lg"
+          class="mt-4 border rounded-xl from-slate-50 to-white bg-gradient-to-br p-4 shadow-lg dark:from-slate-900 dark:to-slate-800 sm:p-6"
         >
           <div class="space-y-6">
             <div class="space-y-3">
-              <h4 class="font-semibold text-md sm:text-lg flex items-center gap-2">
-                <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <h4 class="text-md flex items-center gap-2 font-semibold sm:text-lg">
+                <div class="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
                 Upload Custom Image
               </h4>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                @click="fileInputRef?.click()"
                 :disabled="isUploading"
-                class="transition-all duration-300 hover:scale-105 hover:shadow-md w-full sm:w-auto"
+                class="w-full transition-all duration-300 sm:w-auto hover:scale-105 hover:shadow-md"
+                @click="fileInputRef?.click()"
               >
                 <svg
                   v-if="!isUploading"
@@ -456,7 +471,7 @@ const onSubmit = handleSubmit(async (formValues) => {
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="w-4 h-4 mr-2"
+                  class="mr-2 h-4 w-4"
                 >
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
@@ -464,8 +479,8 @@ const onSubmit = handleSubmit(async (formValues) => {
                 </svg>
                 <div
                   v-if="isUploading"
-                  class="inline-block w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"
-                ></div>
+                  class="mr-2 inline-block h-4 w-4 animate-spin border-2 border-current border-t-transparent rounded-full"
+                />
                 {{ isUploading ? 'Processing...' : 'Choose File' }}
               </Button>
               <p class="text-xs text-muted-foreground">
@@ -474,11 +489,11 @@ const onSubmit = handleSubmit(async (formValues) => {
             </div>
 
             <div class="space-y-3">
-              <h4 class="font-semibold text-md sm:text-lg flex items-center gap-2">
-                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <h4 class="text-md flex items-center gap-2 font-semibold sm:text-lg">
+                <div class="h-2 w-2 animate-pulse rounded-full bg-green-500" />
                 Or Select an Initials Background Color
               </h4>
-              <div class="grid grid-cols-7 sm:grid-cols-8 md:grid-cols-9 lg:grid-cols-10 gap-2">
+              <div class="grid grid-cols-7 gap-2 lg:grid-cols-10 md:grid-cols-9 sm:grid-cols-8">
                 <button
                   v-for="color in predefinedFallbackColors"
                   :key="color.name"
@@ -487,18 +502,18 @@ const onSubmit = handleSubmit(async (formValues) => {
                     cn(
                       'w-9 h-9 rounded-full shadow-md transition-all duration-150 ease-in-out',
                       'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-slate-900',
-                      color.bgClass ||
-                        'bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800',
+                      color.bgClass
+                        || 'bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800',
                       values.avatarFallbackColor === color.bgClass
                         ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-blue-400 scale-110 shadow-lg'
-                        : 'ring-1 ring-inset ring-black/10 dark:ring-white/10 hover:scale-105 hover:shadow-md'
+                        : 'ring-1 ring-inset ring-black/10 dark:ring-white/10 hover:scale-105 hover:shadow-md',
                     )
                   "
-                  @click="selectFallbackColor(color)"
                   :aria-label="`Select ${color.name} background`"
                   :disabled="isUploading"
                   :title="color.name"
-                ></button>
+                  @click="selectFallbackColor(color)"
+                />
               </div>
             </div>
           </div>
@@ -539,8 +554,8 @@ const onSubmit = handleSubmit(async (formValues) => {
       <FormItem>
         <FormLabel>Preferred Language</FormLabel>
         <Select
-          @update:modelValue="(value) => setFieldValue('language', value)"
-          :defaultValue="values.language"
+          :default-value="values.language"
+          @update:model-value="(value) => setFieldValue('language', value)"
         >
           <FormControl>
             <SelectTrigger :disabled="isUploading">
@@ -561,14 +576,15 @@ const onSubmit = handleSubmit(async (formValues) => {
       <Button type="submit" :disabled="isUploading">
         <span
           v-if="isUploading"
-          class="inline-block w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"
-        ></span>
+          class="mr-2 inline-block h-4 w-4 animate-spin border-2 border-current border-t-transparent rounded-full"
+        />
         {{ isUploading ? 'Updating...' : 'Update Profile' }}
       </Button>
 
       <Button
         type="button"
         variant="outline"
+        :disabled="isUploading"
         @click="
           () =>
             resetForm({
@@ -579,7 +595,6 @@ const onSubmit = handleSubmit(async (formValues) => {
               },
             })
         "
-        :disabled="isUploading"
       >
         Reset Form
       </Button>

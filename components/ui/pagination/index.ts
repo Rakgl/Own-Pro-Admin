@@ -5,6 +5,7 @@ export { default as PaginationNext } from './PaginationNext.vue'
 export { default as PaginationPrev } from './PaginationPrev.vue'
 export {
   PaginationRoot as Pagination,
+  PaginationRoot as default,
   PaginationList,
   PaginationListItem,
 } from 'radix-vue'

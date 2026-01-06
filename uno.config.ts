@@ -3,33 +3,64 @@ import {
   presetAttributify,
   presetIcons,
   presetTypography,
-  presetWebFonts,
-  presetWind3,
+  presetWind,
   transformerDirectives,
   transformerVariantGroup,
-} from 'unocss'
-import presetAnimations from 'unocss-preset-animations'
-import { builtinColors, presetShadcn } from 'unocss-preset-shadcn'
+} from 'unocss';
+import presetAnimations from 'unocss-preset-animations';
+import { builtinColors, presetShadcn } from 'unocss-preset-shadcn';
 
 export default defineConfig({
+  // ADD THIS SAFELIST SECTION
+  safelist: [
+    // Active Status
+    'bg-green-100', 'text-green-700', 'border-green-200', 'bg-green-500',
+    'dark:bg-green-700/20', 'dark:text-green-400', 'dark:border-green-600/30',
+    'dark:bg-green-400',
+    // Inactive Status
+    'bg-red-100', 'text-red-700', 'border-red-200', 'bg-red-500',
+    'dark:bg-red-700/20', 'dark:text-red-400', 'dark:border-red-600/30',
+    'dark:bg-red-400',
+    // Default Status
+    'bg-gray-100', 'text-gray-600', 'border-gray-200', 'bg-gray-400',
+    'dark:bg-gray-600/20', 'dark:text-gray-400', 'dark:border-gray-500/30',
+    // Backgrounds & Text (Badge)
+    'bg-green-100', 'text-green-700', 'border-green-200',
+    'bg-red-100', 'text-red-700', 'border-red-200',
+    'bg-gray-100', 'text-gray-600', 'border-gray-200',
+    // Dot Classes (The circle)
+    'w-1.5', 'h-1.5', 'mr-1.5', 'rounded-full',
+    'bg-green-500', 'bg-red-500', 'bg-gray-400',
+    // Dark Mode Versions
+    'dark:bg-green-700/20', 'dark:text-green-400', 'dark:border-green-600/30', 'dark:bg-green-400',
+    'dark:bg-red-700/20', 'dark:text-red-400', 'dark:border-red-600/30', 'dark:bg-red-400',
+    'dark:bg-gray-600/20', 'dark:text-gray-400', 'dark:border-gray-500/30'
+  ],
   variants: [
     {
-      // nth-[]:class
       name: ':nth-child()',
-      match: (matcher: string) => {
-        const match = matcher.match(/^nth-\[(.+?):/)
-        if (!match)
-          return matcher
+      match: (matcher) => {
+        const match = matcher.match(/^nth-\[(.+?):/);
+        if (!match) return matcher;
         return {
-          // slice `hover:` prefix and passed to the next variants and rules
           matcher: matcher.substring(match[0].length),
-          selector: s => `${s}:nth-child(${match[1]})`,
-        }
+          selector: (s) => `${s}:nth-child(${match[1]})`,
+        };
       },
       multiPass: true,
     },
   ],
   theme: {
+    fontSize: {
+      xs: ['0.75rem', { lineHeight: '1rem' }],
+      sm: ['0.875rem', { lineHeight: '1.25rem' }],
+      base: ['1rem', { lineHeight: '1.5rem' }],
+      lg: ['1.125rem', { lineHeight: '1.625rem' }],
+      xl: ['1.25rem', { lineHeight: '1.75rem' }],
+      '2xl': ['1.5rem', { lineHeight: '1.875rem' }],
+      '3xl': ['1.875rem', { lineHeight: '2.125rem' }],
+      '4xl': ['2.25rem', { lineHeight: '2.375rem' }],
+    },
     animation: {
       keyframes: {
         'spin-slow': '{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}',
@@ -43,31 +74,18 @@ export default defineConfig({
     },
   },
   presets: [
-    presetWind3(),
+    presetWind(),
     presetAttributify(),
-    presetIcons({
-      scale: 1.2,
-    }),
+    presetIcons({ scale: 1.2 }),
     presetTypography(),
-    presetWebFonts({
-      fonts: {
-        sans: 'Chivo',
-        mono: 'Chivo Mono',
-      },
-    }),
     presetAnimations(),
-    presetShadcn(builtinColors.map(c => ({ color: c }))),
+    presetShadcn(builtinColors.map((c) => ({ color: c }))),
   ],
-  transformers: [
-    transformerDirectives(),
-    transformerVariantGroup({ separators: [':'] }),
-  ],
+  transformers: [transformerDirectives(), transformerVariantGroup({ separators: [':'] })],
   content: {
     pipeline: {
       include: [
-        // the default
         /\.(vue|svelte|[jt]sx|mdx?|astro|elm|php|phtml|html)($|\?)/,
-        // include js/ts files
         'components/ui/**/*.{js,ts}',
       ],
     },
@@ -75,28 +93,45 @@ export default defineConfig({
   preflights: [
     {
       getCSS: () => `
-        :root {
-          --sidebar-background: 0 0% 98%;
-          --sidebar-foreground: 240 5.3% 26.1%;
-          --sidebar-primary: 240 5.9% 10%;
-          --sidebar-primary-foreground: 0 0% 98%;
-          --sidebar-accent: 240 4.8% 95.9%;
-          --sidebar-accent-foreground: 240 5.9% 10%;
-          --sidebar-border: 220 13% 91%;
-          --sidebar-ring: 217.2 91.2% 59.8%;
-        }
-
-        .dark {
-          --sidebar-background: 240 5.9% 10%;
-          --sidebar-foreground: 240 4.8% 95.9%;
-          --sidebar-primary: 224.3 76.3% 48%;
-          --sidebar-primary-foreground: 0 0% 100%;
-          --sidebar-accent: 240 3.7% 15.9%;
-          --sidebar-accent-foreground: 240 4.8% 95.9%;
-          --sidebar-border: 240 3.7% 15.9%;
-          --sidebar-ring: 217.2 91.2% 59.8%;
-        }
-      `,
+                :root {
+                  --background: 0 0% 100%;
+                  --foreground: 240 10% 3.9%;
+                  --card: 0 0% 100%;
+                  --card-foreground: 240 10% 3.9%;
+                  --popover: 0 0% 100%;
+                  --popover-foreground: 240 10% 3.9%;
+                  --primary: 240 5.9% 10%;
+                  --primary-foreground: 0 0% 98%;
+                  --secondary: 0 0% 96.1%;
+                  --secondary-foreground: 240 5.9% 10%;
+                  --muted: 0 0% 96.1%;
+                  --muted-foreground: 240 3.8% 46.1%;
+                  --accent: 0 0% 96.1%;
+                  --accent-foreground: 240 5.9% 10%;
+                  --border: 0 0% 89.8%;
+                  --input: 0 0% 89.8%;
+                  --ring: 240 10% 3.9%;
+                }
+                .dark {
+                    --background: 240 10% 3.9%;
+                    --foreground: 0 0% 98%;
+                    --card: 240 10% 3.9%;
+                    --card-foreground: 0 0% 98%;
+                    --popover: 240 10% 3.9%;
+                    --popover-foreground: 0 0% 98%;
+                    --primary: 0 0% 98%;
+                    --primary-foreground: 240 5.9% 10%;
+                    --secondary: 240 3.7% 15.9%;
+                    --secondary-foreground: 0 0% 98%;
+                    --muted: 240 3.7% 15.9%;
+                    --muted-foreground: 240 5% 64.9%;
+                    --accent: 240 3.7% 15.9%;
+                    --accent-foreground: 0 0% 98%;
+                    --border: 240 3.7% 15.9%;
+                    --input: 240 3.7% 15.9%;
+                    --ring: 240 4.9% 83.9%;
+                }
+              `,
     },
   ],
-})
+});

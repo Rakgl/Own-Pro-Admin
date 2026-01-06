@@ -1,26 +1,8 @@
 <script setup lang="ts">
-import type { Row } from '@tanstack/vue-table';
-import type { User } from '../data/schema';
-import { ref, computed, watch, defineEmits } from 'vue'; // Added defineEmits
+import type { Row } from '@tanstack/vue-table'
+import type { User } from '../data/schema'
+import { computed, defineEmits, ref, watch } from 'vue' // Added defineEmits
 
-// Shadcn-vue components
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,11 +12,27 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
+} from '@/components/ui/alert-dialog'
+// Shadcn-vue components
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -43,122 +41,123 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useToast } from '@/components/ui/toast/use-toast';
-
-// Assume useApi is a composable providing an API client instance
-// e.g., import { useApi } from '@/composables/useApi';
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { useToast } from '@/components/ui/toast/use-toast'
 
 interface UserRowActionsProps {
-  row: Row<User>;
+  row: Row<User>
+  onDataChanged?: () => void
 }
 
-const props = defineProps<UserRowActionsProps>();
-const emit = defineEmits(['refreshData']); // Define emit for refreshing data
+const props = defineProps<UserRowActionsProps>()
+const emit = defineEmits(['refreshData']) // Define emit for refreshing data
 
-const { hasPermission } = useAuthPermission();
-
-const { toast } = useToast();
-const apiInstance = useApi(); // Make sure useApi() is correctly set up
-const user = computed(() => props.row.original);
+const { toast } = useToast()
+const apiInstance = useApi() // Make sure useApi() is correctly set up
+const user = computed(() => props.row.original)
 
 // Edit Dialog States
-const isEditDialogOpen = ref(false);
-const isLoadingUser = ref(false); // Shared loading state for edit and delete
-const editError = ref<string | null>(null);
-const userToEdit = ref<EditableUserData | null>(null);
-const imagePreviewUrl = ref<string | null>(null);
-const avatarFileInput = ref<HTMLInputElement | null>(null);
-const availableRoles = ref<RoleData[]>([]);
-const isLoadingRoles = ref(false);
+const isEditDialogOpen = ref(false)
+const isLoadingUser = ref(false) // Shared loading state for edit and delete
+const editError = ref<string | null>(null)
+const userToEdit = ref<EditableUserData | null>(null)
+const imagePreviewUrl = ref<string | null>(null)
+const avatarFileInput = ref<HTMLInputElement | null>(null)
+const availableRoles = ref<RoleData[]>([])
+const isLoadingRoles = ref(false)
 
 // Delete Alert Dialog State
-const isDeleteDialogOpen = ref(false);
+const isDeleteDialogOpen = ref(false)
 
 interface RoleData {
-  id: string | number;
-  name: string;
+  id: string | number
+  name: string
 }
 
 interface EditableUserData {
-  id: string | number;
-  name: string;
-  username: string;
-  email?: string;
-  status: boolean;
-  role_id?: string | number | null;
-  password?: string;
-  confirm_password?: string;
-  avatar_url?: string | null;
-  avatar_file?: File | null;
-  [key: string]: any;
+  id: string | number
+  name: string
+  username: string
+  email?: string
+  status: boolean
+  role_id?: string | number | null
+  password?: string
+  confirm_password?: string
+  avatar_url?: string | null
+  avatar_file?: File | null
+  [key: string]: any
 }
 
 interface GetUserApiResponseData {
-  id: string | number;
-  name: string;
-  username: string;
-  email?: string;
-  status: string | boolean;
-  role_id?: string | number;
-  avatar_url?: string; // Ensure backend uses 'avatar_url' or map 'image' to it
-  image?: string; // Potentially from backend
-  [key: string]: any;
+  id: string | number
+  name: string
+  username: string
+  email?: string
+  status: string | boolean
+  role_id?: string | number
+  avatar_url?: string // Ensure backend uses 'avatar_url' or map 'image' to it
+  image?: string // Potentially from backend
+  [key: string]: any
 }
 
 interface GetUserApiResponse {
-  data: GetUserApiResponseData;
+  data: GetUserApiResponseData
 }
 
 interface UpdateUserApiResponse {
-  success: boolean;
-  data: Partial<GetUserApiResponseData>;
-  message?: string;
+  success: boolean
+  data: Partial<GetUserApiResponseData>
+  message?: string
 }
 
-// --- (fetchAvailableRoles, openEditDialog, triggerAvatarFileInput, handleImageFileChange, clearOrRevertAvatarChange, isSaveDisabled, handleSaveChanges remain the same) ---
-const fetchAvailableRoles = async () => {
-  isLoadingRoles.value = true;
+async function fetchAvailableRoles() {
+  isLoadingRoles.value = true
   try {
-    const response = await apiInstance<RoleData[]>('/roles/active', { method: 'GET' });
+    const response = await apiInstance<RoleData[]>('/roles/active', { method: 'GET' })
     if (response && Array.isArray(response)) {
-      availableRoles.value = response;
-    } else if (response && (response as any).data && Array.isArray((response as any).data)) {
-      availableRoles.value = (response as any).data;
-    } else {
-      console.error('Failed to load roles: Invalid response structure.', response);
-      availableRoles.value = [];
+      availableRoles.value = response
     }
-  } catch (error) {
-    console.error('Error fetching roles:', error);
-    toast({ title: 'Error', description: 'Could not load roles.', variant: 'destructive' });
-    availableRoles.value = [];
-  } finally {
-    isLoadingRoles.value = false;
+    else if (response && (response as any).data && Array.isArray((response as any).data)) {
+      availableRoles.value = (response as any).data
+    }
+    else {
+      console.error('Failed to load roles: Invalid response structure.', response)
+      availableRoles.value = []
+    }
   }
-};
+  catch (error) {
+    console.error('Error fetching roles:', error)
+    toast({ title: 'Error', description: 'Could not load roles.', variant: 'destructive' })
+    availableRoles.value = []
+  }
+  finally {
+    isLoadingRoles.value = false
+  }
+}
 
-const openEditDialog = async () => {
+async function openEditDialog() {
   if (!user.value || typeof user.value.id === 'undefined') {
-    editError.value = 'User ID is missing.';
-    isEditDialogOpen.value = true;
-    return;
+    editError.value = 'User ID is missing.'
+    isEditDialogOpen.value = true
+    return
   }
-  isEditDialogOpen.value = true;
-  isLoadingUser.value = true;
-  editError.value = null;
-  userToEdit.value = null;
-  imagePreviewUrl.value = null;
-  if (avatarFileInput.value) avatarFileInput.value.value = '';
+  isEditDialogOpen.value = true
+  isLoadingUser.value = true
+  editError.value = null
+  userToEdit.value = null
+  imagePreviewUrl.value = null
+  if (avatarFileInput.value)
+    avatarFileInput.value.value = ''
 
-  await fetchAvailableRoles();
+  await fetchAvailableRoles()
 
   try {
     const response = await apiInstance<GetUserApiResponse>(`/users/edit/${user.value.id}`, {
       method: 'GET',
-    });
+    })
     if (response && response.data) {
-      const fetchedData = response.data;
+      const fetchedData = response.data
       userToEdit.value = {
         id: fetchedData.id,
         name: fetchedData.name,
@@ -173,259 +172,258 @@ const openEditDialog = async () => {
         avatar_file: null,
         password: '',
         confirm_password: '',
-      };
-      imagePreviewUrl.value = fetchedData.avatar_url || fetchedData.image || null;
-    } else {
-      editError.value = 'Failed to load user details: Invalid response structure.';
+      }
+      imagePreviewUrl.value = fetchedData.avatar_url || fetchedData.image || null
     }
-  } catch (error: any) {
-    editError.value = error.data?.message || error.message || 'An unexpected error occurred.';
-  } finally {
-    isLoadingUser.value = false;
+    else {
+      editError.value = 'Failed to load user details: Invalid response structure.'
+    }
   }
-};
+  catch (error: any) {
+    editError.value = error.data?.message || error.message || 'An unexpected error occurred.'
+  }
+  finally {
+    isLoadingUser.value = false
+  }
+}
 
-const triggerAvatarFileInput = () => {
-  avatarFileInput.value?.click();
-};
+function triggerAvatarFileInput() {
+  avatarFileInput.value?.click()
+}
 
-const handleImageFileChange = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
+function handleImageFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
 
   if (file && userToEdit.value) {
-    userToEdit.value.avatar_file = file;
+    userToEdit.value.avatar_file = file
     if (imagePreviewUrl.value && imagePreviewUrl.value.startsWith('blob:')) {
-      URL.revokeObjectURL(imagePreviewUrl.value);
+      URL.revokeObjectURL(imagePreviewUrl.value)
     }
-    imagePreviewUrl.value = URL.createObjectURL(file);
+    imagePreviewUrl.value = URL.createObjectURL(file)
   }
-};
+}
 
-const clearOrRevertAvatarChange = () => {
+function clearOrRevertAvatarChange() {
   if (userToEdit.value) {
     if (imagePreviewUrl.value && imagePreviewUrl.value.startsWith('blob:')) {
-      URL.revokeObjectURL(imagePreviewUrl.value);
+      URL.revokeObjectURL(imagePreviewUrl.value)
     }
-    userToEdit.value.avatar_file = null;
-    imagePreviewUrl.value = userToEdit.value.avatar_url || null;
+    userToEdit.value.avatar_file = null
+    imagePreviewUrl.value = userToEdit.value.avatar_url || null
     if (avatarFileInput.value) {
-      avatarFileInput.value.value = '';
+      avatarFileInput.value.value = ''
     }
   }
-};
+}
 
 const isSaveDisabled = computed(() => {
   if (isLoadingUser.value || isLoadingRoles.value || !userToEdit.value) {
-    return true;
+    return true
   }
   if (
-    !userToEdit.value.name.trim() ||
-    !userToEdit.value.username.trim() ||
-    userToEdit.value.role_id === null ||
-    userToEdit.value.role_id === undefined
+    !userToEdit.value.name.trim()
+    || !userToEdit.value.username.trim()
+    || userToEdit.value.role_id === null
+    || userToEdit.value.role_id === undefined
   ) {
-    return true;
+    return true
   }
   if (
-    userToEdit.value.password &&
-    userToEdit.value.password !== userToEdit.value.confirm_password
+    userToEdit.value.password
+    && userToEdit.value.password !== userToEdit.value.confirm_password
   ) {
-    return true;
+    return true
   }
   if (userToEdit.value.password && userToEdit.value.password.length < 6) {
-    return true;
+    return true
   }
-  return false;
-});
+  return false
+})
 
-const handleSaveChanges = async () => {
+async function handleSaveChanges() {
   if (!userToEdit.value || userToEdit.value.id === undefined) {
-    editError.value = 'No user data to save.';
-    return;
+    editError.value = 'No user data to save.'
+    return
   }
-  // ... (rest of validation logic remains the same)
   if (!userToEdit.value.name.trim()) {
-    editError.value = 'Name is required.';
-    return;
+    editError.value = 'Name is required.'
+    return
   }
   if (!userToEdit.value.username.trim()) {
-    editError.value = 'Username is required.';
-    return;
+    editError.value = 'Username is required.'
+    return
   }
   if (userToEdit.value.role_id === null || userToEdit.value.role_id === undefined) {
-    editError.value = 'Role is required.';
-    return;
+    editError.value = 'Role is required.'
+    return
   }
   if (userToEdit.value.password) {
     if (userToEdit.value.password.length < 6) {
-      editError.value = 'Password must be at least 6 characters long.';
-      return;
+      editError.value = 'Password must be at least 6 characters long.'
+      return
     }
     if (userToEdit.value.password !== userToEdit.value.confirm_password) {
-      editError.value = 'Passwords do not match.';
-      return;
+      editError.value = 'Passwords do not match.'
+      return
     }
   }
-  editError.value = null;
-  isLoadingUser.value = true;
+  editError.value = null
+  isLoadingUser.value = true
 
-  const formData = new FormData();
-  formData.append('name', userToEdit.value.name);
-  formData.append('username', userToEdit.value.username);
+  const formData = new FormData()
+  formData.append('name', userToEdit.value.name)
+  formData.append('username', userToEdit.value.username)
   if (userToEdit.value.email) {
-    formData.append('email', userToEdit.value.email);
+    formData.append('email', userToEdit.value.email)
   }
-  formData.append('status', userToEdit.value.status ? 'ACTIVE' : 'INACTIVE');
-  formData.append('role_id', String(userToEdit.value.role_id));
+  formData.append('status', userToEdit.value.status ? 'ACTIVE' : 'INACTIVE')
+  formData.append('role_id', String(userToEdit.value.role_id))
 
   if (userToEdit.value.password) {
-    formData.append('password', userToEdit.value.password);
+    formData.append('password', userToEdit.value.password)
   }
 
   if (userToEdit.value.avatar_file) {
-    formData.append('image', userToEdit.value.avatar_file);
-  } else if (userToEdit.value.avatar_url === null) {
-    // If avatar_url was explicitly cleared (not just reverted)
-    formData.append('image', ''); // Send empty string to indicate removal if backend supports
+    formData.append('image', userToEdit.value.avatar_file)
   }
-  // If avatar_file is null and avatar_url exists, don't send 'image' field to keep existing image
+  else if (userToEdit.value.avatar_url === null) {
+    formData.append('image', '')
+  }
 
   try {
     const response = await apiInstance<UpdateUserApiResponse>(
-      `/users/update-user/${userToEdit.value.id}`, // Ensure this route expects POST and handles FormData
+      `/users/update-user/${userToEdit.value.id}`,
       {
-        method: 'POST', // Laravel typically uses POST with _method: 'PUT' or a dedicated PUT route for updates with FormData
+        method: 'POST',
         body: formData,
-      }
-    );
+      },
+    )
 
     if (response.success && response.data) {
-      // Ensure response.data.avatar_url is used if available
-      const newAvatarUrl =
-        response.data.avatar_url ||
-        (userToEdit.value.avatar_file ? imagePreviewUrl.value : userToEdit.value.avatar_url);
+      const newAvatarUrl
+        = response.data.avatar_url
+          || (userToEdit.value.avatar_file ? imagePreviewUrl.value : userToEdit.value.avatar_url)
 
       const updatedUserData = {
         ...props.row.original,
         ...response.data,
         avatar_url: newAvatarUrl,
-        status: userToEdit.value.status, // Ensure local status aligns with what was sent
-      };
-
-      // If backend returns status as string, ensure it's correctly mapped for local state
+        status: userToEdit.value.status,
+      }
       if (typeof response.data.status === 'string') {
-        updatedUserData.status = response.data.status.toUpperCase() === 'ACTIVE';
+        updatedUserData.status = response.data.status.toUpperCase() === 'ACTIVE'
       }
 
-      Object.assign(props.row.original, updatedUserData); // Update the row data directly
+      Object.assign(props.row.original, updatedUserData) // Update the row data directly
 
       if (response.data.avatar_url) {
-        // If backend returned a new avatar URL (e.g., after upload)
-        userToEdit.value.avatar_url = response.data.avatar_url;
-        imagePreviewUrl.value = response.data.avatar_url; // update preview to new persisted URL
-        userToEdit.value.avatar_file = null; // clear staged file
-        if (avatarFileInput.value) avatarFileInput.value.value = ''; // reset file input
-      } else if (userToEdit.value.avatar_file) {
+        userToEdit.value.avatar_url = response.data.avatar_url
+        imagePreviewUrl.value = response.data.avatar_url // update preview to new persisted URL
+        userToEdit.value.avatar_file = null // clear staged file
+        if (avatarFileInput.value)
+          avatarFileInput.value.value = '' // reset file input
+      }
+      else if (userToEdit.value.avatar_file) {
         // If a new file was uploaded but backend didn't return a new URL (e.g. error or direct storage)
         // We might need to refresh the user data or assume the local preview (blob) is okay for now
         // For simplicity, if `response.data.avatar_url` is not there, we keep the current `imagePreviewUrl`
         // which could be a blob if a new file was selected.
       }
 
-      isEditDialogOpen.value = false;
+      isEditDialogOpen.value = false
       toast({
         title: 'User Updated Successfully!',
         description: `The user ${userToEdit.value.name} has been updated.`,
-      });
-      emit('refreshData'); // Also emit refresh on edit if necessary, or rely on Object.assign
-    } else {
-      editError.value = response.message || 'Failed to save changes.';
+      })
     }
-  } catch (error: any) {
-    editError.value =
-      error.data?.message || error.message || 'An unexpected error occurred while saving.';
-  } finally {
-    isLoadingUser.value = false;
+    else {
+      editError.value = response.message || 'Failed to save changes.'
+    }
   }
-};
+  catch (error: any) {
+    editError.value
+      = error.data?.message || error.message || 'An unexpected error occurred while saving.'
+  }
+  finally {
+    isLoadingUser.value = false
+  }
+}
 
 /**
  * Handles the user deletion confirmation.
  * Makes an API call to the backend to delete the user.
  */
-const confirmDeleteUser = async () => {
+async function confirmDeleteUser() {
   if (!user.value || typeof user.value.id === 'undefined') {
     toast({
       title: 'Error',
       description: 'User ID is missing. Cannot delete.',
       variant: 'destructive',
-    });
-    isDeleteDialogOpen.value = false; // Close dialog if ID is missing
-    return;
+    })
+    isDeleteDialogOpen.value = false // Close dialog if ID is missing
+    return
   }
 
-  isLoadingUser.value = true;
+  isLoadingUser.value = true
   try {
-    // Your Laravel backend's `destroy` method is mapped via Route::resource,
-    // so a DELETE request to /users/{id} will trigger it.
-    // It expects { success: boolean, message: string } in response.
-    const response = await apiInstance<{ success: boolean; message: string }>(
+    const response = await apiInstance<{ success: boolean, message: string }>(
       `/users/${user.value.id}`,
-      { method: 'DELETE' }
-    );
+      { method: 'DELETE' },
+    )
 
     if (response.success) {
       toast({
         title: 'User Deleted',
         description: response.message || `User "${user.value.name}" has been successfully deleted.`,
-      });
-      isDeleteDialogOpen.value = false; // Close the dialog on successful deletion
-      emit('refreshData'); // Notify the parent component to refresh its data list
-    } else {
+      })
+      isDeleteDialogOpen.value = false
+      props.onDataChanged?.()
+    }
+    else {
       toast({
         title: 'Deletion Failed',
         description: response.message || 'Could not delete the user. Please try again.',
         variant: 'destructive',
-      });
-      // Optionally, keep the dialog open if deletion failed but was handled by backend
-      // isDeleteDialogOpen.value = false;
+      })
     }
-  } catch (error: any) {
-    console.error('Error deleting user:', error);
-    // Try to extract a meaningful error message
-    let errorMessage = 'An unexpected error occurred during deletion.';
+  }
+  catch (error: any) {
+    console.error('Error deleting user:', error)
+    let errorMessage = 'An unexpected error occurred during deletion.'
     if (error && error.data && error.data.message) {
-      errorMessage = error.data.message;
-    } else if (error && error.message) {
-      errorMessage = error.message;
+      errorMessage = error.data.message
+    }
+    else if (error && error.message) {
+      errorMessage = error.message
     }
     toast({
       title: 'Deletion Error',
       description: errorMessage,
       variant: 'destructive',
-    });
+    })
     // Keep dialog open for network/unexpected errors, allowing user to retry or cancel.
-  } finally {
-    isLoadingUser.value = false; // Reset loading state
   }
-};
+  finally {
+    isLoadingUser.value = false // Reset loading state
+  }
+}
 
 watch(isEditDialogOpen, (newValue) => {
   if (!newValue) {
     // Cleanup for edit dialog
     if (imagePreviewUrl.value && imagePreviewUrl.value.startsWith('blob:')) {
-      URL.revokeObjectURL(imagePreviewUrl.value);
+      URL.revokeObjectURL(imagePreviewUrl.value)
     }
-    imagePreviewUrl.value = null;
-    userToEdit.value = null;
-    editError.value = null;
-    availableRoles.value = [];
+    imagePreviewUrl.value = null
+    userToEdit.value = null
+    editError.value = null
+    availableRoles.value = []
     if (avatarFileInput.value) {
-      avatarFileInput.value.value = '';
+      avatarFileInput.value.value = ''
     }
   }
-});
+})
 
 // Watcher for delete dialog (can be used for cleanup if needed, but usually not necessary for a simple confirm)
 watch(isDeleteDialogOpen, (newValue) => {
@@ -433,7 +431,7 @@ watch(isDeleteDialogOpen, (newValue) => {
     // Optional: any cleanup if dialog is closed without action (e.g. by pressing ESC)
     // isLoadingUser.value = false; // Reset if an action could have left it true
   }
-});
+})
 </script>
 
 <template>
@@ -451,11 +449,13 @@ watch(isDeleteDialogOpen, (newValue) => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" class="w-[160px]">
-        <DropdownMenuItem @click="openEditDialog"> Edit </DropdownMenuItem>
+        <DropdownMenuItem @click="openEditDialog">
+          Edit
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
+          class="text-red-600 focus:text-red-600 hover:!text-red-600 dark:hover:!text-red-500"
           @click="isDeleteDialogOpen = true"
-          class="text-red-600 hover:!text-red-600 focus:text-red-600 dark:hover:!text-red-500"
         >
           Delete
           <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
@@ -464,9 +464,9 @@ watch(isDeleteDialogOpen, (newValue) => {
     </DropdownMenu>
 
     <Dialog v-model:open="isEditDialogOpen">
-      <DialogContent class="sm:max-w-3xl md:max-w-4xl rounded-lg shadow-xl">
+      <DialogContent class="rounded-lg shadow-xl md:max-w-4xl sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          <DialogTitle class="text-xl text-gray-900 font-semibold dark:text-gray-100">
             Edit User Profile
           </DialogTitle>
           <DialogDescription class="mt-1 text-sm text-gray-600 dark:text-gray-400">
@@ -483,34 +483,32 @@ watch(isDeleteDialogOpen, (newValue) => {
         </div>
         <div
           v-else-if="editError && !userToEdit"
-          class="px-6 py-4 mx-4 my-2 text-sm text-red-700 dark:text-red-400 rounded-md bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700"
+          class="mx-4 my-2 border border-red-300 rounded-md bg-red-50 px-6 py-4 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-400"
         >
           <strong>Error:</strong> {{ editError }}
         </div>
 
-        <div class="p-6 max-h-[70vh] overflow-y-auto" v-if="userToEdit">
+        <div v-if="userToEdit" class="max-h-[70vh] overflow-y-auto p-6">
           <div
             v-if="editError"
-            class="mb-4 px-4 py-3 text-sm text-red-700 dark:text-red-400 rounded-md bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700"
+            class="mb-4 border border-red-300 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-400"
           >
             <strong>Error:</strong> {{ editError }}
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6">
-            <div class="md:col-span-1 space-y-3 flex flex-col items-center md:items-start">
-              <Label class="text-sm font-medium text-gray-700 dark:text-gray-300 self-start"
-                >User Avatar</Label
-              >
+          <div class="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-3">
+            <div class="flex flex-col items-center md:col-span-1 md:items-start space-y-3">
+              <Label class="self-start text-sm text-gray-700 font-medium dark:text-gray-300">User Avatar</Label>
               <div class="relative">
                 <img
                   v-if="imagePreviewUrl"
                   :src="imagePreviewUrl"
                   alt="Avatar Preview"
-                  class="h-32 w-32 rounded-full object-cover border-2 border-gray-300 dark:border-gray-600 shadow-sm"
-                />
+                  class="h-32 w-32 border-2 border-gray-300 rounded-full object-cover shadow-sm dark:border-gray-600"
+                >
                 <div
                   v-else
-                  class="h-32 w-32 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600"
+                  class="h-32 w-32 flex items-center justify-center border-2 border-gray-300 rounded-full border-dashed bg-gray-100 dark:border-gray-600 dark:bg-gray-700"
                 >
                   <svg
                     class="h-16 w-16 text-gray-400 dark:text-gray-500"
@@ -526,10 +524,10 @@ watch(isDeleteDialogOpen, (newValue) => {
                   type="button"
                   variant="outline"
                   size="icon"
-                  class="absolute bottom-0 right-0 rounded-full h-8 w-8 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 border-slate-300 dark:border-slate-500"
-                  @click="triggerAvatarFileInput"
+                  class="absolute bottom-0 right-0 h-8 w-8 border-slate-300 rounded-full bg-white dark:border-slate-500 dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600"
                   :disabled="isLoadingUser"
                   aria-label="Change avatar"
+                  @click="triggerAvatarFileInput"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -551,22 +549,22 @@ watch(isDeleteDialogOpen, (newValue) => {
                 </Button>
               </div>
               <input
-                type="file"
                 ref="avatarFileInput"
-                @change="handleImageFileChange"
+                type="file"
                 accept="image/*"
                 class="hidden"
                 :disabled="isLoadingUser"
-              />
+                @change="handleImageFileChange"
+              >
               <div
-                class="flex flex-col sm:flex-row md:flex-col gap-2 w-full items-center md:items-stretch"
+                class="w-full flex flex-col items-center gap-2 sm:flex-row md:flex-col md:items-stretch"
               >
                 <Button
                   type="button"
                   variant="outline"
-                  @click="triggerAvatarFileInput"
                   :disabled="isLoadingUser"
                   class="w-full text-xs sm:text-sm"
+                  @click="triggerAvatarFileInput"
                 >
                   {{
                     userToEdit.avatar_file
@@ -578,27 +576,27 @@ watch(isDeleteDialogOpen, (newValue) => {
                 </Button>
                 <Button
                   v-if="
-                    userToEdit.avatar_file ||
-                    (imagePreviewUrl && imagePreviewUrl !== userToEdit.avatar_url)
+                    userToEdit.avatar_file
+                      || (imagePreviewUrl && imagePreviewUrl !== userToEdit.avatar_url)
                   "
                   type="button"
                   variant="ghost"
                   size="sm"
-                  class="text-red-600 hover:!text-red-500 dark:hover:!text-red-400 w-full text-xs sm:text-sm"
-                  @click="clearOrRevertAvatarChange"
+                  class="w-full text-xs text-red-600 sm:text-sm hover:!text-red-500 dark:hover:!text-red-400"
                   :disabled="isLoadingUser"
+                  @click="clearOrRevertAvatarChange"
                 >
                   Revert / Cancel Change
                 </Button>
               </div>
-              <p class="text-xs text-gray-500 dark:text-gray-400 text-center md:text-left">
+              <p class="text-center text-xs text-gray-500 md:text-left dark:text-gray-400">
                 Max file size: 2MB. JPG, PNG.
               </p>
             </div>
 
             <div class="md:col-span-2 space-y-4">
               <div>
-                <Label for="userFullNameEdit" class="block text-sm font-medium mb-1">
+                <Label for="userFullNameEdit" class="mb-1 block text-sm font-medium">
                   Name <span class="text-red-500">*</span>
                 </Label>
                 <Input
@@ -610,7 +608,7 @@ watch(isDeleteDialogOpen, (newValue) => {
               </div>
 
               <div>
-                <Label for="userUsernameEdit" class="block text-sm font-medium mb-1">
+                <Label for="userUsernameEdit" class="mb-1 block text-sm font-medium">
                   Username <span class="text-red-500">*</span>
                 </Label>
                 <Input
@@ -622,21 +620,21 @@ watch(isDeleteDialogOpen, (newValue) => {
               </div>
 
               <div>
-                <Label for="userEmailEdit" class="block text-sm font-medium mb-1">Email</Label>
+                <Label for="userEmailEdit" class="mb-1 block text-sm font-medium">Email</Label>
                 <Input
                   id="userEmailEdit"
-                  type="email"
                   v-model="userToEdit.email"
+                  type="email"
                   placeholder="Enter email"
                   :disabled="isLoadingUser"
                 />
               </div>
 
               <div>
-                <Label for="userRoleEdit" class="block text-sm font-medium mb-1">
+                <Label for="userRoleEdit" class="mb-1 block text-sm font-medium">
                   Role <span class="text-red-500">*</span>
                 </Label>
-                <div v-if="isLoadingRoles" class="text-sm text-gray-500 dark:text-gray-400 pt-2">
+                <div v-if="isLoadingRoles" class="pt-2 text-sm text-gray-500 dark:text-gray-400">
                   Loading roles...
                 </div>
                 <Select
@@ -663,7 +661,7 @@ watch(isDeleteDialogOpen, (newValue) => {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-                <p v-else class="text-sm text-red-500 dark:text-red-400 pt-2">
+                <p v-else class="pt-2 text-sm text-red-500 dark:text-red-400">
                   No roles available. A role is required to save.
                 </p>
               </div>
@@ -674,8 +672,8 @@ watch(isDeleteDialogOpen, (newValue) => {
                   <Switch
                     id="userStatusEdit"
                     :checked="userToEdit.status"
-                    @update:checked="(newVal: boolean) => (userToEdit!.status = newVal)"
                     :disabled="isLoadingUser"
+                    @update:checked="(newVal: boolean) => (userToEdit!.status = newVal)"
                   />
                   <span class="text-sm text-gray-600 dark:text-gray-400">{{
                     userToEdit.status ? 'ACTIVE' : 'INACTIVE'
@@ -685,31 +683,27 @@ watch(isDeleteDialogOpen, (newValue) => {
             </div>
           </div>
 
-          <div class="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
-            <h3 class="text-md font-semibold text-gray-800 dark:text-gray-200 mb-3">
-              Update Password <span class="text-sm font-normal text-gray-500">(optional)</span>
+          <div class="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700">
+            <h3 class="text-md mb-3 text-gray-800 font-semibold dark:text-gray-200">
+              Update Password <span class="text-sm text-gray-500 font-normal">(optional)</span>
             </h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+            <div class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
               <div>
-                <Label for="newPasswordEdit" class="block text-sm font-medium mb-1"
-                  >New Password</Label
-                >
+                <Label for="newPasswordEdit" class="mb-1 block text-sm font-medium">New Password</Label>
                 <Input
                   id="newPasswordEdit"
-                  type="password"
                   v-model="userToEdit.password"
+                  type="password"
                   placeholder="Min. 6 characters"
                   :disabled="isLoadingUser"
                 />
               </div>
               <div>
-                <Label for="confirmNewPasswordEdit" class="block text-sm font-medium mb-1"
-                  >Confirm New Password</Label
-                >
+                <Label for="confirmNewPasswordEdit" class="mb-1 block text-sm font-medium">Confirm New Password</Label>
                 <Input
                   id="confirmNewPasswordEdit"
-                  type="password"
                   v-model="userToEdit.confirm_password"
+                  type="password"
                   placeholder="Confirm password"
                   :disabled="isLoadingUser"
                 />
@@ -719,16 +713,16 @@ watch(isDeleteDialogOpen, (newValue) => {
         </div>
 
         <DialogFooter
-          class="px-6 py-4 sm:flex sm:flex-row-reverse rounded-b-lg bg-gray-50 dark:bg-slate-800"
+          class="rounded-b-lg bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse dark:bg-slate-800"
         >
           <Button
             type="button"
-            @click="handleSaveChanges"
             :disabled="isSaveDisabled || isLoadingUser || isLoadingRoles"
+            @click="handleSaveChanges"
           >
             <svg
               v-if="isLoadingUser"
-              class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+              class="mr-3 h-5 w-5 animate-spin text-white -ml-1"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -740,20 +734,20 @@ watch(isDeleteDialogOpen, (newValue) => {
                 r="10"
                 stroke="currentColor"
                 stroke-width="4"
-              ></circle>
+              />
               <path
                 class="opacity-75"
                 fill="currentColor"
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
+              />
             </svg>
             {{ isLoadingUser ? 'Saving...' : 'Save Changes' }}
           </Button>
           <Button
             type="button"
             variant="outline"
-            @click="isEditDialogOpen = false"
             :disabled="isLoadingUser || isLoadingRoles"
+            @click="isEditDialogOpen = false"
           >
             Cancel
           </Button>
@@ -772,15 +766,17 @@ watch(isDeleteDialogOpen, (newValue) => {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel :disabled="isLoadingUser">Cancel</AlertDialogCancel>
+          <AlertDialogCancel :disabled="isLoadingUser">
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction
-            @click="confirmDeleteUser"
-            class="bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white"
+            class="bg-red-600 text-white dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600"
             :disabled="isLoadingUser"
+            @click="confirmDeleteUser"
           >
             <svg
               v-if="isLoadingUser"
-              class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+              class="mr-3 h-5 w-5 animate-spin text-white -ml-1"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -792,12 +788,12 @@ watch(isDeleteDialogOpen, (newValue) => {
                 r="10"
                 stroke="currentColor"
                 stroke-width="4"
-              ></circle>
+              />
               <path
                 class="opacity-75"
                 fill="currentColor"
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
+              />
             </svg>
             {{ isLoadingUser ? 'Deleting...' : 'Yes, delete user' }}
           </AlertDialogAction>

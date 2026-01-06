@@ -1,4 +1,3 @@
-
 export default defineNuxtRouteMiddleware(async (to, from) => {
   const { status } = useAuth<any>() // Get auth status
   const { isAuthenticated, hasPermission } = useAuthPermission() // Use isAuthenticated from your composable
@@ -14,10 +13,9 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
       return abortNavigation(
         createError({
           statusCode: 403,
-          statusMessage: `Forbidden: Requires permission '${requiredPermission}' for this route.`
-        })
+          statusMessage: `Forbidden: Requires permission '${requiredPermission}' for this route.`,
+        }),
       )
     }
   }
-  return
 })
