@@ -1,46 +1,65 @@
 <script setup lang="ts">
 definePageMeta({
   layout: 'blank',
+  auth: {
+    unauthenticatedOnly: true,
+    navigateAuthenticatedTo: '/dashboard',
+  },
 })
 </script>
 
 <template>
-  <div class="flex flex-col items-center justify-center gap-6 bg-muted p-6 min-h-svh md:p-10">
-    <div class="max-w-sm w-full flex flex-col gap-6">
-      <NuxtLink to="#" class="flex items-center self-center gap-2 font-medium">
-        <div class="h-6 w-6 flex items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Icon name="i-lucide-gallery-vertical-end" class-name="size-4" />
-        </div>
-        Acme Inc.
-      </NuxtLink>
-      <Card>
-        <CardHeader class="text-center">
-          <CardTitle class="text-xl">
-            Forgot Password
-          </CardTitle>
-          <CardDescription>
-            Enter your email below to reset your password
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div class="grid mx-auto max-w-sm gap-6">
-            <AuthForgotPassword />
-            <p class="text-center text-sm text-muted-foreground">
-              Already have an account?
-              <NuxtLink
-                to="/login"
-                class="underline underline-offset-4 hover:text-primary"
-              >
-                Login
-              </NuxtLink>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+  <div class="h-screen w-full lg:grid lg:grid-cols-2 overflow-hidden bg-background">
+    
+    <div class="relative hidden lg:block bg-muted">
+      <img
+        src="https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=2000"
+        alt="Reset Password Preview"
+        class="absolute inset-0 h-full w-full object-cover dark:brightness-[0.3]"
+      />
+      <div class="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/20 to-transparent p-12 flex flex-col justify-end">
+         <div class="space-y-2">
+            <h2 class="text-white text-2xl font-semibold">{{ $t('nav.items.account_recovery') }}</h2>
+            <p class="text-zinc-300 max-w-md">"Don't worry, we'll help you get back into your account safely and quickly."</p>
+         </div>
+      </div>
     </div>
+
+    <div class="flex items-center justify-center py-12 px-6 lg:px-12">
+      <div class="mx-auto grid w-full max-w-[400px] gap-6">
+        
+        <NuxtLink to="/" class="flex items-center gap-2 font-medium self-center lg:self-start">
+          <div class="h-6 w-6 flex items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Icon name="lucide:gallery-vertical-end" class="size-4" />
+          </div>
+          BIJOU System
+        </NuxtLink>
+
+        <div class="flex flex-col text-center lg:text-left space-y-2">
+          <h1 class="text-3xl font-bold tracking-tight">
+            {{ $t('nav.items.account_recovery') }}
+          </h1>
+          <p class="text-sm text-muted-foreground">
+            Enter your email below to reset your password
+          </p>
+        </div>
+
+        <AuthForgotPassword />
+
+        <div class="space-y-4">
+          <p class="text-center text-sm text-muted-foreground">
+            Already have an account?
+            <NuxtLink
+              to="/login"
+              class="underline underline-offset-4 hover:text-primary font-medium"
+            >
+              Login
+            </NuxtLink>
+          </p>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </template>
-
-<style scoped>
-
-</style>

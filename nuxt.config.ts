@@ -4,6 +4,12 @@ const appBaseUrl = process.env.NUXT_PUBLIC_APP_BASE_URL
 const adminApiBase = process.env.NUXT_PUBLIC_ADMIN_API_BASE
 
 export default defineNuxtConfig({
+  devtools: {
+    enabled: true,
+    vscode: {},
+  },
+  ssr: false,
+
   compatibilityDate: '2024-12-14',
 
   build: {
@@ -19,29 +25,27 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@nuxtjs/color-mode',
     '@sidebase/nuxt-auth',
+    '@nuxtjs/i18n',
   ],
 
   runtimeConfig: {
     public: {
-      appBaseUrl,
-      adminApiBase,
-      apiBase: '/api-proxy', 
+      appBaseUrl: process.env.NUXT_PUBLIC_APP_BASE_URL,
+      adminApiBase: process.env.NUXT_PUBLIC_ADMIN_API_BASE,
+      apiBase: '/api/v1/admin',
     },
   },
 
   auth: {
-    originEnvKey: 'NUXT_PUBLIC_APP_BASE_URL',
+    baseURL: '/api/v1/admin/auth',
     globalAppMiddleware: true,
     provider: {
       type: 'local',
       endpoints: {
-        signIn: { path: '/api-proxy/auth/login', method: 'post' },
-        signOut: { path: '/api-proxy/auth/logout', method: 'post' },
-        getSession: {
-          path: '/api-proxy/auth/info',
-          method: 'get',
-          headers: { Accept: 'application/json' },
-        },
+        signIn: { path: `/login`, method: 'post' },
+        signOut: { path: `/logout`, method: 'post' },
+        signUp: false,
+        getSession: { path: `/info`, method: 'get' },
       },
       pages: {
         login: '/login',
@@ -50,31 +54,51 @@ export default defineNuxtConfig({
         signInResponseTokenPointer: '/data/access_token',
         type: 'Bearer',
         headerName: 'Authorization',
-        maxAgeInSeconds: 31536000,
+        maxAgeInSeconds: 365 * 24 * 60 * 60,
         sameSiteAttribute: 'lax',
       },
-      sessionDataType: {
-        user: {
-          id: 'string',
-          name: 'string',
-          username: 'string',
-          email: 'string',
-          role: 'string',
-          status: 'object',
-          created_at: 'string',
-          updated_at: 'string',
+      refresh: {
+        isEnabled: false,
+        endpoint: { path: `/refresh-token`, method: 'post' },
+        token: {
+          signInResponseRefreshTokenPointer: '/data/refresh_token',
+          refreshResponseTokenPointer: '/data/access_token',
+          refreshRequestTokenPointer: '/refresh_token',
+          maxAgeInSeconds: 365 * 24 * 60 * 60,
+          sameSiteAttribute: 'lax',
         },
-        permissions: 'array',
       },
     },
   },
 
+  vite: process.env.PROXY_API_URL
+    ? {
+      server: {
+        proxy: {
+          '/api/v1/admin': {
+            target: process.env.PROXY_API_URL,
+            changeOrigin: true,
+            secure: false,
+            configure: (proxy, _options) => {
+              console.log('🚀 Proxy configured for /api/v1/admin →', process.env.PROXY_API_URL);
+              proxy.on('proxyReq', (proxyReq, req, _res) => {
+                console.log('📤 Proxying:', req.method, req.url);
+              });
+              proxy.on('proxyRes', (proxyRes, req, _res) => {
+                console.log('📥 Response:', proxyRes.statusCode, req.url);
+              });
+            },
+          },
+        },
+      },
+    }
+    : {},
+
   routeRules: {
+    // '/**': { headers: { 'Cache-Control': 'no-cache' } },
+    '/': { redirect: '/dashboard' },
     '/components': { redirect: '/components/accordion' },
     '/settings': { redirect: '/settings/profile' },
-    '/api-proxy/**': {
-      proxy: `${adminApiBase}/**`,
-    },
     '/admin/**': { appMiddleware: 'permission' },
     '/customers/**': { appMiddleware: 'permission' },
     '/stations/**': { appMiddleware: 'permission' },
@@ -89,5 +113,20 @@ export default defineNuxtConfig({
 
   imports: {
     dirs: ['./lib', './stores', './composables'],
+  },
+  i18n: {
+    lazy: true,
+    strategy: 'prefix_except_default',
+    defaultLocale: 'en',
+    vueI18n: './i18n.config.ts',
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'i18n_redirected',
+      redirectOn: 'root',
+    },
+    locales: [
+      { code: 'en', name: 'English' },
+      { code: 'kh', name: 'Khmer' },
+    ],
   },
 })

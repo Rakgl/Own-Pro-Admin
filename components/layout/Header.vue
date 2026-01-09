@@ -43,8 +43,9 @@ watch(() => route.fullPath, (val) => {
       <Separator orientation="vertical" class="h-4" />
       <BaseBreadcrumbCustom :links="links" />
     </div>
-    <div class="ml-auto">
+    <div class="ml-auto flex items-center gap-2">
       <slot />
+      <DarkToggle />
     </div>
   </header>
 </template>

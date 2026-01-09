@@ -45,9 +45,11 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast/use-toast'
 
+// Assume useApi is a composable providing an API client instance
+// e.g., import { useApi } from '@/composables/useApi';
+
 interface UserRowActionsProps {
   row: Row<User>
-  onDataChanged?: () => void
 }
 
 const props = defineProps<UserRowActionsProps>()
@@ -111,6 +113,7 @@ interface UpdateUserApiResponse {
   message?: string
 }
 
+// --- (fetchAvailableRoles, openEditDialog, triggerAvatarFileInput, handleImageFileChange, clearOrRevertAvatarChange, isSaveDisabled, handleSaveChanges remain the same) ---
 async function fetchAvailableRoles() {
   isLoadingRoles.value = true
   try {
@@ -246,6 +249,7 @@ async function handleSaveChanges() {
     editError.value = 'No user data to save.'
     return
   }
+  // ... (rest of validation logic remains the same)
   if (!userToEdit.value.name.trim()) {
     editError.value = 'Name is required.'
     return
@@ -288,19 +292,22 @@ async function handleSaveChanges() {
     formData.append('image', userToEdit.value.avatar_file)
   }
   else if (userToEdit.value.avatar_url === null) {
-    formData.append('image', '')
+    // If avatar_url was explicitly cleared (not just reverted)
+    formData.append('image', '') // Send empty string to indicate removal if backend supports
   }
+  // If avatar_file is null and avatar_url exists, don't send 'image' field to keep existing image
 
   try {
     const response = await apiInstance<UpdateUserApiResponse>(
-      `/users/update-user/${userToEdit.value.id}`,
+      `/users/update-user/${userToEdit.value.id}`, // Ensure this route expects POST and handles FormData
       {
-        method: 'POST',
+        method: 'POST', // Laravel typically uses POST with _method: 'PUT' or a dedicated PUT route for updates with FormData
         body: formData,
       },
     )
 
     if (response.success && response.data) {
+      // Ensure response.data.avatar_url is used if available
       const newAvatarUrl
         = response.data.avatar_url
           || (userToEdit.value.avatar_file ? imagePreviewUrl.value : userToEdit.value.avatar_url)
@@ -309,8 +316,10 @@ async function handleSaveChanges() {
         ...props.row.original,
         ...response.data,
         avatar_url: newAvatarUrl,
-        status: userToEdit.value.status,
+        status: userToEdit.value.status, // Ensure local status aligns with what was sent
       }
+
+      // If backend returns status as string, ensure it's correctly mapped for local state
       if (typeof response.data.status === 'string') {
         updatedUserData.status = response.data.status.toUpperCase() === 'ACTIVE'
       }
@@ -318,6 +327,7 @@ async function handleSaveChanges() {
       Object.assign(props.row.original, updatedUserData) // Update the row data directly
 
       if (response.data.avatar_url) {
+        // If backend returned a new avatar URL (e.g., after upload)
         userToEdit.value.avatar_url = response.data.avatar_url
         imagePreviewUrl.value = response.data.avatar_url // update preview to new persisted URL
         userToEdit.value.avatar_file = null // clear staged file
@@ -336,6 +346,7 @@ async function handleSaveChanges() {
         title: 'User Updated Successfully!',
         description: `The user ${userToEdit.value.name} has been updated.`,
       })
+      emit('refreshData') // Also emit refresh on edit if necessary, or rely on Object.assign
     }
     else {
       editError.value = response.message || 'Failed to save changes.'
@@ -367,6 +378,9 @@ async function confirmDeleteUser() {
 
   isLoadingUser.value = true
   try {
+    // Your Laravel backend's `destroy` method is mapped via Route::resource,
+    // so a DELETE request to /users/{id} will trigger it.
+    // It expects { success: boolean, message: string } in response.
     const response = await apiInstance<{ success: boolean, message: string }>(
       `/users/${user.value.id}`,
       { method: 'DELETE' },
@@ -377,8 +391,8 @@ async function confirmDeleteUser() {
         title: 'User Deleted',
         description: response.message || `User "${user.value.name}" has been successfully deleted.`,
       })
-      isDeleteDialogOpen.value = false
-      props.onDataChanged?.()
+      isDeleteDialogOpen.value = false // Close the dialog on successful deletion
+      emit('refreshData') // Notify the parent component to refresh its data list
     }
     else {
       toast({
@@ -386,10 +400,13 @@ async function confirmDeleteUser() {
         description: response.message || 'Could not delete the user. Please try again.',
         variant: 'destructive',
       })
+      // Optionally, keep the dialog open if deletion failed but was handled by backend
+      // isDeleteDialogOpen.value = false;
     }
   }
   catch (error: any) {
     console.error('Error deleting user:', error)
+    // Try to extract a meaningful error message
     let errorMessage = 'An unexpected error occurred during deletion.'
     if (error && error.data && error.data.message) {
       errorMessage = error.data.message

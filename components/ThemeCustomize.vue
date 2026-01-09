@@ -2,6 +2,7 @@
 import { themes } from '@/lib/registry/themes'
 
 const { theme, radius, setTheme, setRadius } = useCustomize()
+const { setLanguage, getCurrentLanguage, getAvailableLanguages } = useLanguage()
 
 type Color
   = | 'zinc'
@@ -61,6 +62,8 @@ function backgroundColor(color: Color) {
 }
 
 const colorMode = useColorMode()
+const availableLanguages = getAvailableLanguages()
+const currentLang = computed(() => getCurrentLanguage())
 </script>
 
 <template>
@@ -96,6 +99,21 @@ const colorMode = useColorMode()
             <span class="text-xs capitalize">{{ r }}</span>
           </Button>
         </template>
+      </div>
+    </div>
+    <div class="space-y-1.5">
+      <Label>Language</Label>
+      <div class="grid grid-cols-2 gap-2">
+        <Button
+          v-for="lang in availableLanguages"
+          :key="lang.code"
+          class="justify-center gap-2"
+          variant="outline"
+          :class="{ 'border-primary border-2': currentLang.code === lang.code }"
+          @click="setLanguage(lang.code)"
+        >
+          <span class="text-xs capitalize">{{ lang.name }}</span>
+        </Button>
       </div>
     </div>
     <div class="space-y-1.5">

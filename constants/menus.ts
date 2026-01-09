@@ -2,40 +2,50 @@ import type { NavMenu, NavMenuItems } from '~/types/nav'
 
 export const navMenu: NavMenu[] = [
   {
-    heading: 'Authentication',
+    heading: '',
     items: [
       {
-        title: 'Authentication',
+        title: 'nav.dashboard',
+        icon: 'i-lucide-layout-dashboard',
+        link: '/dashboard',
+      },
+    ],
+  },
+  {
+    heading: 'nav.core_administration',
+    items: [
+      {
+        title: 'nav.authentication',
         icon: 'i-lucide-lock-keyhole-open',
         children: [
           {
-            title: 'Role & Permission',
+            title: 'nav.role_permission',
             icon: 'i-lucide-circle',
             link: '/roles',
           },
           {
-            title: 'User',
+            title: 'nav.system_users',
             icon: 'i-lucide-circle',
             link: '/users',
           },
         ],
       },
       {
-        title: 'Settings',
+        title: 'sidebar.menu.settings',
         icon: 'i-lucide-settings',
         children: [
           {
-            title: 'Profile',
+            title: 'sidebar.menu.profile',
             icon: 'i-lucide-circle',
             link: '/settings/profile',
           },
           {
-            title: 'Account',
+            title: 'sidebar.menu.account',
             icon: 'i-lucide-circle',
             link: '/settings/account',
           },
           {
-            title: 'Appearance',
+            title: 'sidebar.menu.appearance',
             icon: 'i-lucide-circle',
             link: '/settings/appearance',
           },
@@ -47,13 +57,13 @@ export const navMenu: NavMenu[] = [
 
 export const navMenuBottom: NavMenuItems = [
   {
-    title: 'Help & Support',
+    title: 'nav.help_support',
     icon: 'i-lucide-circle-help',
-    link: 'https://github.com/dianprata/nuxt-shadcn-dashboard',
+    link: '/support',
   },
   {
-    title: 'Feedback',
+    title: 'nav.feedback',
     icon: 'i-lucide-send',
-    link: 'https://github.com/dianprata/nuxt-shadcn-dashboard',
+    link: '/feedback',
   },
 ]

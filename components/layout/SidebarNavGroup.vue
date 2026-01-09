@@ -11,6 +11,7 @@ withDefaults(defineProps<{
 })
 
 const { setOpenMobile } = useSidebar()
+const localePath = useLocalePath()
 
 const openCollapsible = ref(false)
 </script>
@@ -25,9 +26,9 @@ const openCollapsible = ref(false)
     >
       <SidebarMenuItem>
         <CollapsibleTrigger as-child>
-          <SidebarMenuButton :tooltip="item.title" :size="size">
+          <SidebarMenuButton :tooltip="$t(item.title)" :size="size">
             <Icon :name="item.icon || ''" mode="svg" />
-            <span>{{ item.title }}</span>
+            <span>{{ $t(item.title) }}</span>
             <span v-if="item.new" class="rounded-md bg-#adfa1d px-1.5 py-0.5 text-xs text-black leading-none no-underline group-hover:no-underline">
               New
             </span>
@@ -41,8 +42,8 @@ const openCollapsible = ref(false)
               :key="subItem.title"
             >
               <SidebarMenuSubButton as-child>
-                <NuxtLink :to="subItem.link" @click="setOpenMobile(false)">
-                  <span>{{ subItem.title }}</span>
+                <NuxtLink :to="localePath(subItem.link)" @click="setOpenMobile(false)">
+                  <span>{{ $t(subItem.title) }}</span>
                   <span v-if="subItem.new" class="rounded-md bg-#adfa1d px-1.5 py-0.5 text-xs text-black leading-none no-underline group-hover:no-underline">
                     New
                   </span>

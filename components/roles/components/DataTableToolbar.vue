@@ -36,7 +36,6 @@ function useApi() {
     url: string,
     options: { method: string, body: any },
   ): Promise<T> => {
-    // console.log('Mock API call:', url, options)
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500))
     // Simulate a successful response

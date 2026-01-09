@@ -8,18 +8,18 @@ function resolveNavItemComponent(item: NavLink | NavGroup | NavSectionTitle): an
   return resolveComponent('LayoutSidebarNavLink')
 }
 
-const user: {
-  name: string
-  email: string
-  avatar: string
-} = {
-  name: 'Dian Pratama',
-  email: 'dianpratama2@gmail.com',
-  avatar: '/avatars/avatartion.png',
-}
-
-const { sidebar } = useAppSettings()
 const { hasPermission, isAuthenticated } = useAuthPermission()
+const { sidebar } = useAppSettings()
+const { data } = useAuth()
+
+const user = computed(() => {
+  const userData = data.value?.user || {}
+  return {
+    name: userData.name || 'User',
+    email: userData.email || '',
+    avatar: userData.image || '/avatars/avatartion.png',
+  }
+})
 
 // Filter navigation items based on permissions
 function filterNavItemsByPermission(items: any[]): any[] {
@@ -68,7 +68,7 @@ const filteredNavMenu = computed(() => {
     <SidebarContent>
       <SidebarGroup v-for="(nav, indexGroup) in filteredNavMenu" :key="indexGroup">
         <SidebarGroupLabel v-if="nav.heading">
-          {{ nav.heading }}
+          {{ $t(nav.heading) }}
         </SidebarGroupLabel>
 
         <component

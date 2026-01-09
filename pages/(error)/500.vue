@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 definePageMeta({
   layout: 'blank',
 })
@@ -12,9 +12,10 @@ const router = useRouter()
       <h1 class="text-[7rem] font-bold leading-tight">
         500
       </h1>
-      <span class="font-medium">Oops! Something went wrong :')</span>
+      <span class="font-medium">Oops! Something went wrong!</span>
       <p class="text-center text-muted-foreground">
-        We apologize for the inconvenience. <br> Please try again later.
+        We apologize for the inconvenience. <br>
+        Please try again later.
       </p>
       <div class="mt-6 flex gap-4">
         <Button variant="outline" @click="router.back()">

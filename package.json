@@ -59,6 +59,7 @@
     "@nuxt/eslint": "^1.2.0",
     "@nuxt/icon": "^1.11.0",
     "@nuxtjs/color-mode": "^3.5.2",
+    "@nuxtjs/i18n": "^10.2.1",
     "@pinia/nuxt": "^0.5.1",
     "@sidebase/nuxt-auth": "0.10.1",
     "@unocss/eslint-plugin": "^66.0.0",

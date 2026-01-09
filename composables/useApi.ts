@@ -1,6 +1,6 @@
 export function useApi() {
   const config = useRuntimeConfig()
-  const adminApiBase = config.public.adminApiBase
+  const adminApiBase = config.public.apiBase
   const { token } = useAuth()
 
   return $fetch.create({

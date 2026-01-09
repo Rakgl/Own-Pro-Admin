@@ -32,9 +32,9 @@ interface DataTableProps {
   manualFiltering?: boolean
 }
 
-interface DataTableProps {
-  onDataChanged?: () => void
-}
+// interface DataTableProps {
+//   onDataChanged?: () => void
+// }
 
 const props = defineProps<DataTableProps>()
 
@@ -81,9 +81,9 @@ const table = useVueTable({
 
   getCoreRowModel: getCoreRowModel(),
 
-  meta: {
-    onDataChanged: () => props.onDataChanged?.(),
-  },
+  // meta: {
+  //   onDataChanged: () => props.onDataChanged?.(),
+  // },
 })
 </script>
 

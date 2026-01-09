@@ -1,8 +1,9 @@
 <script setup lang="ts">
-// Assuming these types are correctly defined
-import { navMenu } from '@/constants/menus' // Your navMenu import
+import { navMenu } from '@/constants/menus' 
 
 const { metaSymbol } = useShortcuts()
+const { t } = useI18n() 
+
 const openCommand = ref(false)
 const router = useRouter()
 
@@ -19,10 +20,12 @@ function handleSelectLink(link: string) {
 </script>
 
 <template>
-  <SidebarMenuButton as-child tooltip="Search">
+  <SidebarMenuButton as-child :tooltip="t('common.search')">
     <Button variant="outline" size="sm" class="text-xs" @click="openCommand = !openCommand">
       <Icon name="i-lucide-search" />
-      <span class="font-normal group-data-[collapsible=icon]:hidden">Search documentation</span>
+      <span class="font-normal group-data-[collapsible=icon]:hidden">
+        {{ t('common.search') }}
+      </span>
       <div class="ml-auto flex items-center group-data-[collapsible=icon]:hidden space-x-0.5">
         <BaseKbd>{{ metaSymbol }}</BaseKbd>
         <BaseKbd>K</BaseKbd>
@@ -31,31 +34,16 @@ function handleSelectLink(link: string) {
   </SidebarMenuButton>
 
   <CommandDialog v-model:open="openCommand">
-    <CommandInput placeholder="Type a command or search..." />
+    <CommandInput :placeholder="t('common.search')" />
     <CommandList>
-      <CommandEmpty>No results found.</CommandEmpty>
+      <CommandEmpty>{{ t('command.no_results') }}</CommandEmpty>
 
-      <!-- <CommandGroup heading="Suggestions">
-        <CommandItem value="Home" @select="handleSelectLink('/')">
-          Home
-          <CommandShortcut>
-            <BaseKbd>G</BaseKbd>
-            <BaseKbd>H</BaseKbd>
-          </CommandShortcut>
-        </CommandItem>
-        <CommandItem value="Email" @select="handleSelectLink('/email')">
-          Email
-          <CommandShortcut>
-            <BaseKbd>G</BaseKbd>
-            <BaseKbd>E</BaseKbd>
-          </CommandShortcut>
-        </CommandItem>
-      </CommandGroup> -->
       <CommandSeparator />
 
       <template v-for="(menu, menuIndex) in navMenu" :key="menu.heading || menuIndex">
-        <CommandGroup :heading="menu.heading">
+        <CommandGroup :heading="menu.heading ? t(menu.heading) : ''">
           <template v-for="(item, itemIndex) in menu.items" :key="item.title || itemIndex">
+            
             <template v-if="item.children && item.children.length > 0">
               <CommandItem
                 v-for="(child, childIndex) in item.children"
@@ -71,9 +59,11 @@ function handleSelectLink(link: string) {
                 >
                   <Icon :name="item.icon" class="h-3 w-3" />
                 </span>
-                <span v-else class="h-4 w-4" /> {{ child.title }}
+                <span v-else class="h-4 w-4" /> 
+                {{ t(child.title) }}
               </CommandItem>
             </template>
+
             <template v-else-if="item.link">
               <CommandItem
                 :key="item.title"
@@ -82,9 +72,11 @@ function handleSelectLink(link: string) {
                 @select="() => handleSelectLink(item.link)"
               >
                 <Icon v-if="item.icon" :name="item.icon" class="h-4 w-4" />
-                <span v-else class="h-4 w-4" /> {{ item.title }}
+                <span v-else class="h-4 w-4" /> 
+                {{ t(item.title) }}
               </CommandItem>
             </template>
+            
           </template>
         </CommandGroup>
         <CommandSeparator v-if="menuIndex < navMenu.length - 1" />
@@ -92,7 +84,3 @@ function handleSelectLink(link: string) {
     </CommandList>
   </CommandDialog>
 </template>
-
-<style scoped>
-/* Add any specific styles if needed */
-</style>

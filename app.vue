@@ -22,7 +22,7 @@ useHead({
     { rel: 'icon', href: '/favicon.ico' },
   ],
   htmlAttrs: {
-    lang: 'en',
+    lang: computed(() => useI18n().locale.value),
   },
   bodyAttrs: {
     class: computed(() => `theme-${theme.value}`),
@@ -48,7 +48,7 @@ useSeoMeta({
 const router = useRouter()
 
 defineShortcuts({
-  'G-H': () => router.push('/'),
+  'G-H': () => router.push('/dashboard'),
   'G-E': () => router.push('/email'),
 })
 
