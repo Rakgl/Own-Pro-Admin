@@ -7,6 +7,7 @@ interface Item {
 }
 
 const route = useRoute()
+const localePath = useLocalePath()
 
 const sidebarNavItems: Item[] = [
   {
@@ -33,12 +34,12 @@ const sidebarNavItems: Item[] = [
       :class="
         cn(
           'w-full text-left justify-start items-start',
-          route.path === item.href && 'bg-muted hover:bg-muted',
+          route.path === localePath(item.href) && 'bg-muted hover:bg-muted',
         )
       "
       as-child
     >
-      <NuxtLink :to="item.href">
+      <NuxtLink :to="localePath(item.href)">
         {{ item.title }}
       </NuxtLink>
     </Button>
