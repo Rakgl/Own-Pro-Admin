@@ -82,10 +82,10 @@ export default defineNuxtConfig({
             configure: (proxy, _options) => {
               console.log('🚀 Proxy configured for /api/v1/admin →', process.env.PROXY_API_URL);
               proxy.on('proxyReq', (proxyReq, req, _res) => {
-                console.log('📤 Proxying:', req.method, req.url);
+                console.log('🚀 Proxying:', req.method, req.url);
               });
               proxy.on('proxyRes', (proxyRes, req, _res) => {
-                console.log('📥 Response:', proxyRes.statusCode, req.url);
+                console.log('🚀 Response:', proxyRes.statusCode, req.url);
               });
             },
           },

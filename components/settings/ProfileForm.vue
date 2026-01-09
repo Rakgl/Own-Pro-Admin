@@ -315,6 +315,7 @@ const onSubmit = handleSubmit(async (formValues) => {
         <FormLabel>Display Name</FormLabel>
         <FormControl><Input v-bind="componentField" /></FormControl>
         <FormMessage />
+        <FormDescription>This is your public display name. (Used for initials if no image)</FormDescription>
       </FormItem>
     </FormField>
 
@@ -323,6 +324,7 @@ const onSubmit = handleSubmit(async (formValues) => {
         <FormLabel>Email</FormLabel>
         <FormControl><Input v-bind="componentField" /></FormControl>
         <FormMessage />
+        <FormDescription>Your primary email address.</FormDescription>
       </FormItem>
     </FormField>
 
