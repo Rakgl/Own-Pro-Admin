@@ -1,12 +1,28 @@
 <script setup lang="ts">
 const route = useRoute()
+const localePath = useLocalePath()
+const { locale, defaultLocale } = useI18n()
 
 function setLinks() {
-  if (route.fullPath === '/') {
-    return [{ title: 'Home', href: '/' }]
+  // Always start with the localized Home
+  const homeLink = { title: 'Home', href: localePath('/') }
+
+  // Get the path without query params
+  const currentPath = route.path
+  
+  // Split into segments
+  let segments = currentPath.split('/').filter(item => item !== '')
+
+  // Remove the locale segment if it's the current locale and not the default (assuming prefix strategy)
+  // Or simply check if the first segment matches the current locale
+  if (segments.length > 0 && segments[0] === locale.value) {
+    segments.shift()
   }
 
-  const segments = route.fullPath.split('/').filter(item => item !== '')
+  // If we are at root (or just locale root), return just Home
+  if (segments.length === 0) {
+    return [homeLink]
+  }
 
   const breadcrumbs = segments.map((item, index) => {
     const str = item.replace(/-/g, ' ')
@@ -15,13 +31,16 @@ function setLinks() {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ')
 
+    // Reconstruct the logical path (without locale)
+    const logicalPath = `/${segments.slice(0, index + 1).join('/')}`
+    
     return {
       title,
-      href: `/${segments.slice(0, index + 1).join('/')}`,
+      href: localePath(logicalPath),
     }
   })
 
-  return [{ title: 'Home', href: '/' }, ...breadcrumbs]
+  return [homeLink, ...breadcrumbs]
 }
 
 const links = ref<{
@@ -29,10 +48,9 @@ const links = ref<{
   href: string
 }[]>(setLinks())
 
-watch(() => route.fullPath, (val) => {
-  if (val) {
-    links.value = setLinks()
-  }
+// Watch both fullPath and locale to update breadcrumbs
+watch(() => [route.fullPath, locale.value], () => {
+  links.value = setLinks()
 })
 </script>
 
