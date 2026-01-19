@@ -22,7 +22,7 @@ export default {
     <DropdownMenu>
       <DropdownMenuTrigger as-child>
         <Button variant="ghost" class="h-8 -ml-3 data-[state=open]:bg-accent">
-          <span>{{ title }}</span>
+          <span>{{ $t(title) }}</span>
           <Icon
             v-if="column.getIsSorted() === 'desc'"
             name="i-radix-icons-arrow-down"
@@ -39,22 +39,22 @@ export default {
       <DropdownMenuContent align="start">
         <DropdownMenuItem @click="column.toggleSorting(false)">
           <Icon name="i-radix-icons-arrow-up" class="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-          Asc
+          {{ $t('common.asc') }}
         </DropdownMenuItem>
         <DropdownMenuItem @click="column.toggleSorting(true)">
           <Icon name="i-radix-icons-arrow-down" class="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-          Desc
+          {{ $t('common.desc') }}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem @click="column.toggleVisibility(false)">
           <Icon name="i-radix-icons-eye-none" class="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-          Hide
+          {{ $t('common.hide') }}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   </div>
 
   <div v-else :class="$attrs.class">
-    {{ title }}
+    {{ $t(title) }}
   </div>
 </template>

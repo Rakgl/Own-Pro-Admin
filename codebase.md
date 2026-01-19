@@ -1,11 +1,10 @@
-# columns.ts
+# components/columns.ts
 
 ```ts
+import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import type { Role } from '../data/schema'
 import { Badge } from '@/components/ui/badge'
-import { h } from 'vue'
-import { Checkbox } from '@/components/ui/checkbox'
 import DataTableColumnHeader from './DataTableColumnHeader.vue'
 import RoleRowActions from './DataTableRowActions.vue'
 
@@ -53,52 +52,15 @@ export const roleColumns: ColumnDef<Role>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: 'image',
-    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'Avatar' }),
-    cell: ({ row }) => {
-      const image = row.getValue('image') as string | undefined
-      const name = (row.getValue('name') as string) || 'User'
-
-      if (image) {
-        return h('img', {
-          src: image,
-          alt: `${name}'s avatar`,
-          class: 'w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700',
-        })
-      }
-      else {
-        const initials = name
-          .split(' ')
-          .map(n => n[0])
-          .join('')
-          .substring(0, 2)
-          .toUpperCase()
-        return h(
-          'div',
-          {
-            class:
-              'w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-semibold text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600', // Added border
-          },
-          initials || 'N/A',
-        )
-      }
-    },
-    enableSorting: false,
-    enableHiding: true,
-    meta: {
-      cellClass: 'flex justify-center items-center',
-    },
-  },
-  {
     accessorKey: 'name',
     header: ({ column }) => h(DataTableColumnHeader, { column, title: 'Name' }),
     cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('name')),
     enableSorting: true,
   },
   {
-    accessorKey: 'role',
-    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'Role' }),
-    cell: ({ row }) => h('div', {}, row.getValue('role') || 'N/A'),
+    accessorKey: 'description',
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'Description' }),
+    cell: ({ row }) => h('div', {}, row.getValue('description') || 'N/A'),
     enableSorting: false,
   },
   {
@@ -141,7 +103,7 @@ export const roleColumns: ColumnDef<Role>[] = [
 
 ```
 
-# DataTable.vue
+# components/DataTable.vue
 
 ```vue
 <script setup lang="ts" generic="TData, TValue">
@@ -281,7 +243,7 @@ const table = useVueTable({
 
 ```
 
-# DataTableColumnHeader.vue
+# components/DataTableColumnHeader.vue
 
 ```vue
 <script setup lang="ts">
@@ -347,7 +309,7 @@ export default {
 
 ```
 
-# DataTableFacetedFilter.vue
+# components/DataTableFacetedFilter.vue
 
 ```vue
 <script setup lang="ts">
@@ -424,7 +386,6 @@ const selectedValues = computed(() => new Set(props.column?.getFilterValue() as 
               :key="option.value"
               :value="option"
               @select="(e: any) => {
-                console.log(e.detail.value)
                 const isSelected = selectedValues.has(option.value)
                 if (isSelected) {
                   selectedValues.delete(option.value)
@@ -476,7 +437,7 @@ const selectedValues = computed(() => new Set(props.column?.getFilterValue() as 
 
 ```
 
-# DataTablePagination.vue
+# components/DataTablePagination.vue
 
 ```vue
 <script setup lang="ts">
@@ -566,13 +527,13 @@ defineProps<DataTablePaginationProps>()
 
 ```
 
-# DataTableRowActions.vue
+# components/DataTableRowActions.vue
 
 ```vue
 <script setup lang="ts">
 import type { Row } from '@tanstack/vue-table'
-import type { User } from '../data/schema'
-import { computed, defineEmits, ref, watch } from 'vue' // Added defineEmits
+import type { Role } from '../data/schema' // This should ideally match the structure of RoleIndexResource
+import { computed, ref, watch } from 'vue'
 
 import {
   AlertDialog,
@@ -583,9 +544,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-// Shadcn-vue components
+} from '@/components/ui/alert-dialog' // ✨ Import Alert Dialog components
+// Shadcn-vue components (ensure paths are correct for your project)
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -604,420 +566,352 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/toast/use-toast'
 
-// Assume useApi is a composable providing an API client instance
-// e.g., import { useApi } from '@/composables/useApi';
-
-interface UserRowActionsProps {
-  row: Row<User>
+interface RoleRowActionsProps {
+  row: Row<Role>
 }
 
-const props = defineProps<UserRowActionsProps>()
-const emit = defineEmits(['refreshData']) // Define emit for refreshing data
-
+const props = defineProps<RoleRowActionsProps>()
 const { toast } = useToast()
-const apiInstance = useApi() // Make sure useApi() is correctly set up
-const user = computed(() => props.row.original)
+const apiInstance = useApi()
+const role = computed(() => props.row.original)
 
 // Edit Dialog States
 const isEditDialogOpen = ref(false)
-const isLoadingUser = ref(false) // Shared loading state for edit and delete
+const isLoadingRole = ref(false)
 const editError = ref<string | null>(null)
-const userToEdit = ref<EditableUserData | null>(null)
-const imagePreviewUrl = ref<string | null>(null)
-const avatarFileInput = ref<HTMLInputElement | null>(null)
-const availableRoles = ref<RoleData[]>([])
-const isLoadingRoles = ref(false)
+const roleToEdit = ref<EditableRoleData | null>(null)
 
-// Delete Alert Dialog State
-const isDeleteDialogOpen = ref(false)
+// Permissions Dialog States
+const isPermissionsDialogOpen = ref(false)
+const isLoadingPermissions = ref(false)
+const permissionsError = ref<string | null>(null)
+const allPermissions = ref<PermissionGroup[]>([])
+const currentRolePermissions = ref<PermissionItem[]>([])
+const selectedPermissionSlugs = ref<Set<string>>(new Set())
 
-interface RoleData {
+// ✨ Delete Alert Dialog State
+const isDeleteDialogOpen = ref(false) // ✨ New state for delete alert
+
+interface EditableRoleData {
   id: string | number
   name: string
-}
-
-interface EditableUserData {
-  id: string | number
-  name: string
-  username: string
-  email?: string
+  description: string | null
   status: boolean
-  role_id?: string | number | null
-  password?: string
-  confirm_password?: string
-  avatar_url?: string | null
-  avatar_file?: File | null
   [key: string]: any
 }
 
-interface GetUserApiResponseData {
-  id: string | number
-  name: string
-  username: string
-  email?: string
-  status: string | boolean
-  role_id?: string | number
-  avatar_url?: string // Ensure backend uses 'avatar_url' or map 'image' to it
-  image?: string // Potentially from backend
-  [key: string]: any
+interface GetRoleApiResponse {
+  data: EditableRoleData
 }
 
-interface GetUserApiResponse {
-  data: GetUserApiResponseData
-}
-
-interface UpdateUserApiResponse {
+interface UpdateRoleApiResponse {
   success: boolean
-  data: Partial<GetUserApiResponseData>
+  data: EditableRoleData
   message?: string
 }
 
-// --- (fetchAvailableRoles, openEditDialog, triggerAvatarFileInput, handleImageFileChange, clearOrRevertAvatarChange, isSaveDisabled, handleSaveChanges remain the same) ---
-async function fetchAvailableRoles() {
-  isLoadingRoles.value = true
-  try {
-    const response = await apiInstance<RoleData[]>('/roles/active', { method: 'GET' })
-    if (response && Array.isArray(response)) {
-      availableRoles.value = response
-    }
-    else if (response && (response as any).data && Array.isArray((response as any).data)) {
-      availableRoles.value = (response as any).data
-    }
-    else {
-      console.error('Failed to load roles: Invalid response structure.', response)
-      availableRoles.value = []
-    }
-  }
-  catch (error) {
-    console.error('Error fetching roles:', error)
-    toast({ title: 'Error', description: 'Could not load roles.', variant: 'destructive' })
-    availableRoles.value = []
-  }
-  finally {
-    isLoadingRoles.value = false
-  }
+interface PermissionItem {
+  id: number
+  module: string
+  name: string
+  slug: string
+}
+
+interface PermissionGroup {
+  module: string
+  name: string
+  slug: string
+  permissions: PermissionItem[]
+}
+
+interface RolePermissionResponse {
+  success: boolean
+  data: PermissionItem[]
+  message?: string
 }
 
 async function openEditDialog() {
-  if (!user.value || typeof user.value.id === 'undefined') {
-    editError.value = 'User ID is missing.'
-    isEditDialogOpen.value = true
+  // ... (your existing openEditDialog logic)
+  if (!role.value || typeof role.value.id === 'undefined') {
+    editError.value = 'Role ID is missing.'
     return
   }
   isEditDialogOpen.value = true
-  isLoadingUser.value = true
+  isLoadingRole.value = true
   editError.value = null
-  userToEdit.value = null
-  imagePreviewUrl.value = null
-  if (avatarFileInput.value)
-    avatarFileInput.value.value = ''
-
-  await fetchAvailableRoles()
-
+  roleToEdit.value = null
   try {
-    const response = await apiInstance<GetUserApiResponse>(`/users/edit/${user.value.id}`, {
+    const response = await apiInstance<GetRoleApiResponse>(`/roles/${role.value.id}`, {
       method: 'GET',
     })
     if (response && response.data) {
       const fetchedData = response.data
-      userToEdit.value = {
+      roleToEdit.value = {
         id: fetchedData.id,
         name: fetchedData.name,
-        username: fetchedData.username || '',
-        email: fetchedData.email || '',
-        status:
-          typeof fetchedData.status === 'string'
-            ? fetchedData.status.toUpperCase() === 'ACTIVE'
-            : Boolean(fetchedData.status),
-        role_id: fetchedData.role_id || null,
-        avatar_url: fetchedData.avatar_url || fetchedData.image || null,
-        avatar_file: null,
-        password: '',
-        confirm_password: '',
+        description: fetchedData.description || '',
+        status: fetchedData.status === 'ACTIVE',
       }
-      imagePreviewUrl.value = fetchedData.avatar_url || fetchedData.image || null
     }
     else {
-      editError.value = 'Failed to load user details: Invalid response structure.'
+      editError.value = 'Failed to load role details: Invalid response structure.'
     }
   }
   catch (error: any) {
     editError.value = error.data?.message || error.message || 'An unexpected error occurred.'
   }
   finally {
-    isLoadingUser.value = false
+    isLoadingRole.value = false
   }
 }
-
-function triggerAvatarFileInput() {
-  avatarFileInput.value?.click()
-}
-
-function handleImageFileChange(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-
-  if (file && userToEdit.value) {
-    userToEdit.value.avatar_file = file
-    if (imagePreviewUrl.value && imagePreviewUrl.value.startsWith('blob:')) {
-      URL.revokeObjectURL(imagePreviewUrl.value)
-    }
-    imagePreviewUrl.value = URL.createObjectURL(file)
-  }
-}
-
-function clearOrRevertAvatarChange() {
-  if (userToEdit.value) {
-    if (imagePreviewUrl.value && imagePreviewUrl.value.startsWith('blob:')) {
-      URL.revokeObjectURL(imagePreviewUrl.value)
-    }
-    userToEdit.value.avatar_file = null
-    imagePreviewUrl.value = userToEdit.value.avatar_url || null
-    if (avatarFileInput.value) {
-      avatarFileInput.value.value = ''
-    }
-  }
-}
-
-const isSaveDisabled = computed(() => {
-  if (isLoadingUser.value || isLoadingRoles.value || !userToEdit.value) {
-    return true
-  }
-  if (
-    !userToEdit.value.name.trim()
-    || !userToEdit.value.username.trim()
-    || userToEdit.value.role_id === null
-    || userToEdit.value.role_id === undefined
-  ) {
-    return true
-  }
-  if (
-    userToEdit.value.password
-    && userToEdit.value.password !== userToEdit.value.confirm_password
-  ) {
-    return true
-  }
-  if (userToEdit.value.password && userToEdit.value.password.length < 6) {
-    return true
-  }
-  return false
-})
 
 async function handleSaveChanges() {
-  if (!userToEdit.value || userToEdit.value.id === undefined) {
-    editError.value = 'No user data to save.'
+  // ... (your existing handleSaveChanges logic)
+  if (!roleToEdit.value || roleToEdit.value.id === undefined) {
+    editError.value = 'No role data to save.'
     return
   }
-  // ... (rest of validation logic remains the same)
-  if (!userToEdit.value.name.trim()) {
-    editError.value = 'Name is required.'
+  if (!roleToEdit.value.name.trim()) {
+    editError.value = 'Role name cannot be empty.'
     return
   }
-  if (!userToEdit.value.username.trim()) {
-    editError.value = 'Username is required.'
-    return
-  }
-  if (userToEdit.value.role_id === null || userToEdit.value.role_id === undefined) {
-    editError.value = 'Role is required.'
-    return
-  }
-  if (userToEdit.value.password) {
-    if (userToEdit.value.password.length < 6) {
-      editError.value = 'Password must be at least 6 characters long.'
-      return
-    }
-    if (userToEdit.value.password !== userToEdit.value.confirm_password) {
-      editError.value = 'Passwords do not match.'
-      return
-    }
-  }
+  isLoadingRole.value = true
   editError.value = null
-  isLoadingUser.value = true
-
-  const formData = new FormData()
-  formData.append('name', userToEdit.value.name)
-  formData.append('username', userToEdit.value.username)
-  if (userToEdit.value.email) {
-    formData.append('email', userToEdit.value.email)
-  }
-  formData.append('status', userToEdit.value.status ? 'ACTIVE' : 'INACTIVE')
-  formData.append('role_id', String(userToEdit.value.role_id))
-
-  if (userToEdit.value.password) {
-    formData.append('password', userToEdit.value.password)
-  }
-
-  if (userToEdit.value.avatar_file) {
-    formData.append('image', userToEdit.value.avatar_file)
-  }
-  else if (userToEdit.value.avatar_url === null) {
-    // If avatar_url was explicitly cleared (not just reverted)
-    formData.append('image', '') // Send empty string to indicate removal if backend supports
-  }
-  // If avatar_file is null and avatar_url exists, don't send 'image' field to keep existing image
-
   try {
-    const response = await apiInstance<UpdateUserApiResponse>(
-      `/users/update-user/${userToEdit.value.id}`, // Ensure this route expects POST and handles FormData
-      {
-        method: 'POST', // Laravel typically uses POST with _method: 'PUT' or a dedicated PUT route for updates with FormData
-        body: formData,
-      },
-    )
-
+    const payload = {
+      name: roleToEdit.value.name,
+      description: roleToEdit.value.description,
+      status: roleToEdit.value.status ? 'ACTIVE' : 'INACTIVE',
+    }
+    const response = await apiInstance<UpdateRoleApiResponse>(`/roles/${roleToEdit.value.id}`, {
+      method: 'PUT',
+      body: payload,
+    })
     if (response.success && response.data) {
-      // Ensure response.data.avatar_url is used if available
-      const newAvatarUrl
-        = response.data.avatar_url
-          || (userToEdit.value.avatar_file ? imagePreviewUrl.value : userToEdit.value.avatar_url)
-
-      const updatedUserData = {
-        ...props.row.original,
-        ...response.data,
-        avatar_url: newAvatarUrl,
-        status: userToEdit.value.status, // Ensure local status aligns with what was sent
-      }
-
-      // If backend returns status as string, ensure it's correctly mapped for local state
-      if (typeof response.data.status === 'string') {
-        updatedUserData.status = response.data.status.toUpperCase() === 'ACTIVE'
-      }
-
-      Object.assign(props.row.original, updatedUserData) // Update the row data directly
-
-      if (response.data.avatar_url) {
-        // If backend returned a new avatar URL (e.g., after upload)
-        userToEdit.value.avatar_url = response.data.avatar_url
-        imagePreviewUrl.value = response.data.avatar_url // update preview to new persisted URL
-        userToEdit.value.avatar_file = null // clear staged file
-        if (avatarFileInput.value)
-          avatarFileInput.value.value = '' // reset file input
-      }
-      else if (userToEdit.value.avatar_file) {
-        // If a new file was uploaded but backend didn't return a new URL (e.g. error or direct storage)
-        // We might need to refresh the user data or assume the local preview (blob) is okay for now
-        // For simplicity, if `response.data.avatar_url` is not there, we keep the current `imagePreviewUrl`
-        // which could be a blob if a new file was selected.
-      }
-
+      // eslint-disable-next-line vue/no-mutating-props
+      Object.assign(props.row.original, response.data)
       isEditDialogOpen.value = false
+      roleToEdit.value = null
       toast({
-        title: 'User Updated Successfully!',
-        description: `The user ${userToEdit.value.name} has been updated.`,
+        title: 'Role Updated Successfully!',
+        description: `The role "${response.data.name}" has been updated.`,
       })
-      emit('refreshData') // Also emit refresh on edit if necessary, or rely on Object.assign
     }
     else {
       editError.value = response.message || 'Failed to save changes.'
     }
   }
   catch (error: any) {
-    editError.value
-      = error.data?.message || error.message || 'An unexpected error occurred while saving.'
+    editError.value = error.data?.message || error.message || 'An unexpected error occurred.'
   }
   finally {
-    isLoadingUser.value = false
+    isLoadingRole.value = false
   }
 }
 
-/**
- * Handles the user deletion confirmation.
- * Makes an API call to the backend to delete the user.
- */
-async function confirmDeleteUser() {
-  if (!user.value || typeof user.value.id === 'undefined') {
-    toast({
-      title: 'Error',
-      description: 'User ID is missing. Cannot delete.',
-      variant: 'destructive',
-    })
-    isDeleteDialogOpen.value = false // Close dialog if ID is missing
+async function openPermissionsDialog() {
+  // ... (your existing openPermissionsDialog logic)
+  if (!role.value || typeof role.value.id === 'undefined') {
+    console.error('Role ID is missing for manage permissions action', role.value)
+    permissionsError.value = 'Role ID is missing.'
     return
   }
-
-  isLoadingUser.value = true
+  isPermissionsDialogOpen.value = true
+  isLoadingPermissions.value = true
+  permissionsError.value = null
+  allPermissions.value = []
+  currentRolePermissions.value = []
+  selectedPermissionSlugs.value = new Set()
   try {
-    // Your Laravel backend's `destroy` method is mapped via Route::resource,
-    // so a DELETE request to /users/{id} will trigger it.
-    // It expects { success: boolean, message: string } in response.
-    const response = await apiInstance<{ success: boolean, message: string }>(
-      `/users/${user.value.id}`,
-      { method: 'DELETE' },
+    const allPermsResponse = await apiInstance<PermissionGroup[]>('/role-permissions', {
+      method: 'GET',
+    })
+    if (allPermsResponse && Array.isArray(allPermsResponse)) {
+      allPermissions.value = allPermsResponse
+    }
+    else {
+      console.error(
+        'Failed to fetch all permissions: Invalid response structure',
+        allPermsResponse,
+      )
+      permissionsError.value = 'Could not load available permissions.'
+      isLoadingPermissions.value = false
+      return
+    }
+    const currentPermsResponse = await apiInstance<RolePermissionResponse>(
+      `role-permissions/role/${role.value.id}`,
+      {
+        method: 'GET',
+      },
     )
+    if (
+      currentPermsResponse
+      && currentPermsResponse.success
+      && Array.isArray(currentPermsResponse.data)
+    ) {
+      currentRolePermissions.value = currentPermsResponse.data
+      const currentSlugs = currentPermsResponse.data.map(permission => permission.slug)
+      selectedPermissionSlugs.value = new Set(currentSlugs)
+    }
+    else {
+      console.warn('No current permissions found or invalid response.', currentPermsResponse)
+      currentRolePermissions.value = []
+      selectedPermissionSlugs.value = new Set()
+    }
+  }
+  catch (error: any) {
+    console.error('Error in permissions dialog setup:', error)
+    permissionsError.value = error.data?.message || error.message || 'An error occurred.'
+  }
+  finally {
+    isLoadingPermissions.value = false
+  }
+}
+
+function handlePermissionToggle(slug: string, checked: boolean) {
+  // ... (your existing handlePermissionToggle logic)
+  if (checked) {
+    selectedPermissionSlugs.value.add(slug)
+  }
+  else {
+    selectedPermissionSlugs.value.delete(slug)
+  }
+}
+
+async function handleSavePermissions() {
+  // ... (your existing handleSavePermissions logic)
+  if (!role.value || typeof role.value.id === 'undefined') {
+    permissionsError.value = 'Role ID is missing.'
+    return
+  }
+  isLoadingPermissions.value = true
+  permissionsError.value = null
+  try {
+    const selectedPermissions = Array.from(selectedPermissionSlugs.value)
+    const permissionIds: number[] = []
+    allPermissions.value.forEach((group) => {
+      group.permissions.forEach((permission) => {
+        if (selectedPermissions.includes(permission.slug)) {
+          permissionIds.push(permission.id)
+        }
+      })
+    })
+    const payload = {
+      role_id: role.value.id,
+      permission_ids: permissionIds,
+    }
+    const response = await apiInstance<{ success: boolean, message?: string, data?: any }>(
+      `/role-permissions/update`,
+      {
+        method: 'POST',
+        body: payload,
+      },
+    )
+    if (response.success) {
+      isPermissionsDialogOpen.value = false
+      toast({
+        title: 'Permissions Updated!',
+        description: `Permissions for role "${role.value.name}" have been saved.`,
+      })
+    }
+    else {
+      permissionsError.value = response.message || 'Failed to save permissions.'
+    }
+  }
+  catch (error: any) {
+    console.error('Error saving permissions:', error)
+    permissionsError.value
+      = error.data?.message
+        || error.message
+        || 'An unexpected error occurred while saving permissions.'
+  }
+  finally {
+    isLoadingPermissions.value = false
+  }
+}
+
+function isPermissionSelected(slug: string): boolean {
+  return selectedPermissionSlugs.value.has(slug)
+}
+
+function getSelectedPermissionsCount(group: PermissionGroup): string {
+  const selectedCount = group.permissions.filter(p =>
+    selectedPermissionSlugs.value.has(p.slug),
+  ).length
+  const totalCount = group.permissions.length
+  return `${selectedCount}/${totalCount}`
+}
+
+async function confirmDeleteRole() {
+  if (!role.value || typeof role.value.id === 'undefined') {
+    toast({
+      title: 'Error',
+      description: 'Role ID is missing, cannot delete.',
+      variant: 'destructive',
+    })
+    return
+  }
+  try {
+    const response = await apiInstance(`/roles/${role.value.id}`, {
+      method: 'DELETE',
+    })
 
     if (response.success) {
       toast({
-        title: 'User Deleted',
-        description: response.message || `User "${user.value.name}" has been successfully deleted.`,
+        title: 'Role Deleted Successfully!',
+        description: `The role "${role.value.name}" has been deleted.`,
       })
-      isDeleteDialogOpen.value = false // Close the dialog on successful deletion
-      emit('refreshData') // Notify the parent component to refresh its data list
+      isDeleteDialogOpen.value = false
+      // TODO: You'll likely want to refresh your table data here
+      // e.g., by emitting an event or calling a method passed as a prop
     }
     else {
       toast({
         title: 'Deletion Failed',
-        description: response.message || 'Could not delete the user. Please try again.',
+        description: response.message || 'Could not delete the role.',
         variant: 'destructive',
       })
-      // Optionally, keep the dialog open if deletion failed but was handled by backend
-      // isDeleteDialogOpen.value = false;
     }
   }
   catch (error: any) {
-    console.error('Error deleting user:', error)
-    // Try to extract a meaningful error message
-    let errorMessage = 'An unexpected error occurred during deletion.'
-    if (error && error.data && error.data.message) {
-      errorMessage = error.data.message
-    }
-    else if (error && error.message) {
-      errorMessage = error.message
-    }
     toast({
       title: 'Deletion Error',
-      description: errorMessage,
+      description: error.data?.message || error.message || 'An unexpected error occurred.',
       variant: 'destructive',
     })
-    // Keep dialog open for network/unexpected errors, allowing user to retry or cancel.
   }
   finally {
-    isLoadingUser.value = false // Reset loading state
+    // Reset loading state if you added one
+    isDeleteDialogOpen.value = false // Ensure dialog closes even on error
   }
 }
 
 watch(isEditDialogOpen, (newValue) => {
   if (!newValue) {
-    // Cleanup for edit dialog
-    if (imagePreviewUrl.value && imagePreviewUrl.value.startsWith('blob:')) {
-      URL.revokeObjectURL(imagePreviewUrl.value)
-    }
-    imagePreviewUrl.value = null
-    userToEdit.value = null
+    roleToEdit.value = null
     editError.value = null
-    availableRoles.value = []
-    if (avatarFileInput.value) {
-      avatarFileInput.value.value = ''
-    }
+    isLoadingRole.value = false
   }
 })
 
-// Watcher for delete dialog (can be used for cleanup if needed, but usually not necessary for a simple confirm)
+watch(isPermissionsDialogOpen, (newValue) => {
+  if (!newValue) {
+    allPermissions.value = []
+    currentRolePermissions.value = []
+    selectedPermissionSlugs.value = new Set()
+    permissionsError.value = null
+    isLoadingPermissions.value = false
+  }
+})
+
+// ✨ Watcher for delete dialog (optional, for cleanup)
 watch(isDeleteDialogOpen, (newValue) => {
   if (!newValue) {
-    // Optional: any cleanup if dialog is closed without action (e.g. by pressing ESC)
-    // isLoadingUser.value = false; // Reset if an action could have left it true
+    // You can add cleanup logic here if needed when the dialog is closed
   }
 })
 </script>
@@ -1027,7 +921,7 @@ watch(isDeleteDialogOpen, (newValue) => {
     <DropdownMenu>
       <DropdownMenuTrigger as-child>
         <Button variant="ghost" class="h-8 w-8 flex p-0">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
             <path
               fill="currentColor"
               d="M5 10c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m14 0c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m-7 0c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2"
@@ -1036,9 +930,13 @@ watch(isDeleteDialogOpen, (newValue) => {
           <span class="sr-only">Open menu</span>
         </Button>
       </DropdownMenuTrigger>
+
       <DropdownMenuContent align="end" class="w-[160px]">
         <DropdownMenuItem @click="openEditDialog">
           Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem @click="openPermissionsDialog">
+          Manage Permissions
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -1052,264 +950,196 @@ watch(isDeleteDialogOpen, (newValue) => {
     </DropdownMenu>
 
     <Dialog v-model:open="isEditDialogOpen">
-      <DialogContent class="rounded-lg shadow-xl md:max-w-4xl sm:max-w-3xl">
+      <DialogContent class="rounded-lg shadow-xl sm:max-w-md">
         <DialogHeader>
-          <DialogTitle class="text-xl text-gray-900 font-semibold dark:text-gray-100">
-            Edit User Profile
+          <DialogTitle class="text-lg text-gray-900 font-medium dark:text-gray-100">
+            Edit
           </DialogTitle>
           <DialogDescription class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Update user details. Fields marked with <span class="text-red-500">*</span> are
-            required.
+            Make changes to the role details. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
-
         <div
-          v-if="isLoadingUser && !userToEdit"
-          class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400"
+          v-if="isLoadingRole"
+          class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400"
         >
-          Loading user data...
+          Loading...
         </div>
         <div
-          v-else-if="editError && !userToEdit"
-          class="mx-4 my-2 border border-red-300 rounded-md bg-red-50 px-6 py-4 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-400"
+          v-else-if="editError"
+          class="m-4 rounded-md px-6 py-4 text-sm text-red-600 dark:text-red-400"
         >
           <strong>Error:</strong> {{ editError }}
         </div>
-
-        <div v-if="userToEdit" class="max-h-[70vh] overflow-y-auto p-6">
-          <div
-            v-if="editError"
-            class="mb-4 border border-red-300 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-400"
+        <div v-if="roleToEdit && !isLoadingRole" class="grid gap-6 p-6">
+          <div class="grid grid-cols-4 items-center gap-x-4 gap-y-2">
+            <Label
+              for="roleName"
+              class="col-span-1 text-right text-sm text-gray-700 font-medium dark:text-gray-300"
+            >Name</Label>
+            <Input
+              id="roleName"
+              v-model="roleToEdit.name"
+              class="col-span-3"
+              placeholder="Enter role name"
+              :disabled="isLoadingRole"
+            />
+          </div>
+          <div class="grid grid-cols-4 items-start gap-x-4 gap-y-2">
+            <Label
+              for="roleDescription"
+              class="col-span-1 pt-2 text-right text-sm text-gray-700 font-medium dark:text-gray-300"
+            >Description</Label>
+            <Textarea
+              id="roleDescription"
+              v-model="roleToEdit.description"
+              class="col-span-3 min-h-[80px]"
+              placeholder="Enter role description (optional)"
+              :disabled="isLoadingRole"
+            />
+          </div>
+          <div class="grid grid-cols-4 items-center gap-x-4 gap-y-2">
+            <Label
+              for="roleStatus"
+              class="col-span-1 text-right text-sm text-gray-700 font-medium dark:text-gray-300"
+            >Status</Label>
+            <div class="col-span-3 flex items-center space-x-2">
+              <Switch
+                id="roleStatus"
+                :checked="roleToEdit.status"
+                :disabled="isLoadingRole"
+                @update:checked="(newVal: boolean) => (roleToEdit!.status = newVal)"
+              />
+              <span class="text-sm text-gray-600 dark:text-gray-400">{{
+                roleToEdit.status ? 'ACTIVE' : 'INACTIVE'
+              }}</span>
+            </div>
+          </div>
+        </div>
+        <DialogFooter class="rounded-b-lg px-6 py-4 sm:flex sm:flex-row-reverse">
+          <Button
+            type="button"
+            :disabled="isLoadingRole || !roleToEdit || !roleToEdit.name"
+            @click="handleSaveChanges"
           >
-            <strong>Error:</strong> {{ editError }}
-          </div>
+            {{ isLoadingRole ? 'Saving...' : 'Save changes' }}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            :disabled="isLoadingRole"
+            @click="isEditDialogOpen = false"
+          >
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
-          <div class="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-3">
-            <div class="flex flex-col items-center md:col-span-1 md:items-start space-y-3">
-              <Label class="self-start text-sm text-gray-700 font-medium dark:text-gray-300">User Avatar</Label>
-              <div class="relative">
-                <img
-                  v-if="imagePreviewUrl"
-                  :src="imagePreviewUrl"
-                  alt="Avatar Preview"
-                  class="h-32 w-32 border-2 border-gray-300 rounded-full object-cover shadow-sm dark:border-gray-600"
-                >
-                <div
-                  v-else
-                  class="h-32 w-32 flex items-center justify-center border-2 border-gray-300 rounded-full border-dashed bg-gray-100 dark:border-gray-600 dark:bg-gray-700"
-                >
-                  <svg
-                    class="h-16 w-16 text-gray-400 dark:text-gray-500"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z"
-                    />
-                  </svg>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  class="absolute bottom-0 right-0 h-8 w-8 border-slate-300 rounded-full bg-white dark:border-slate-500 dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600"
-                  :disabled="isLoadingUser"
-                  aria-label="Change avatar"
-                  @click="triggerAvatarFileInput"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path
-                      d="M12 19H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2v7"
-                    />
-                    <path d="M12 12a3 3 0 1 1 0-6a3 3 0 0 1 0 6Z" />
-                    <path d="m19 16-2 3h4l-2-3Z" />
-                  </svg>
-                </Button>
-              </div>
-              <input
-                ref="avatarFileInput"
-                type="file"
-                accept="image/*"
-                class="hidden"
-                :disabled="isLoadingUser"
-                @change="handleImageFileChange"
+    <Dialog v-model:open="isPermissionsDialogOpen">
+      <DialogContent class="rounded-lg shadow-xl sm:max-w-6xl">
+        <DialogHeader>
+          <DialogTitle class="text-lg text-gray-900 font-medium dark:text-gray-100">
+            Manage Permissions for {{ role?.name }}
+          </DialogTitle>
+          <DialogDescription class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Select the permissions to assign to this role. Currently selected:
+            {{ selectedPermissionSlugs.size }} permissions.
+          </DialogDescription>
+        </DialogHeader>
+        <div
+          v-if="isLoadingPermissions"
+          class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400"
+        >
+          <svg
+            class="mx-auto mb-3 h-6 w-6 animate-spin text-indigo-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            />
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+          Loading permissions...
+        </div>
+        <div
+          v-else-if="permissionsError"
+          class="m-4 border border-red-200 rounded-md bg-red-50 px-6 py-4 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
+        >
+          <strong>Error:</strong> {{ permissionsError }}
+        </div>
+        <div
+          v-if="allPermissions.length > 0 && !isLoadingPermissions"
+          class="max-h-[60vh] overflow-y-auto p-6"
+        >
+          <div v-for="group in allPermissions" :key="group.module" class="mb-6">
+            <div class="mb-3 flex items-center justify-between">
+              <h3
+                class="text-md border-b pb-2 text-gray-700 font-semibold dark:border-gray-600 dark:text-gray-300"
               >
+                {{ group.name }}
+              </h3>
+              <span
+                class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+              >
+                {{ getSelectedPermissionsCount(group) }}
+              </span>
+            </div>
+            <div class="grid grid-cols-1 gap-x-4 gap-y-3 lg:grid-cols-3 sm:grid-cols-2">
               <div
-                class="w-full flex flex-col items-center gap-2 sm:flex-row md:flex-col md:items-stretch"
+                v-for="permission in group.permissions"
+                :key="permission.slug"
+                class="flex items-center rounded p-2 space-x-2 hover:bg-gray-50 dark:hover:bg-gray-800/50"
               >
-                <Button
-                  type="button"
-                  variant="outline"
-                  :disabled="isLoadingUser"
-                  class="w-full text-xs sm:text-sm"
-                  @click="triggerAvatarFileInput"
-                >
-                  {{
-                    userToEdit.avatar_file
-                      ? 'Change Selected'
-                      : imagePreviewUrl
-                        ? 'Change Avatar'
-                        : 'Upload Avatar'
-                  }}
-                </Button>
-                <Button
-                  v-if="
-                    userToEdit.avatar_file
-                      || (imagePreviewUrl && imagePreviewUrl !== userToEdit.avatar_url)
+                <Checkbox
+                  :id="`perm-${permission.slug}`"
+                  :checked="isPermissionSelected(permission.slug)"
+                  class="form-checkbox h-5 w-5 rounded text-indigo-600 transition duration-150 ease-in-out dark:border-gray-600"
+                  @update:checked="
+                    (checked) => handlePermissionToggle(permission.slug, Boolean(checked))
                   "
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  class="w-full text-xs text-red-600 sm:text-sm hover:!text-red-500 dark:hover:!text-red-400"
-                  :disabled="isLoadingUser"
-                  @click="clearOrRevertAvatarChange"
+                />
+                <Label
+                  :for="`perm-${permission.slug}`"
+                  class="flex-1 cursor-pointer text-sm text-gray-700 dark:text-gray-300"
                 >
-                  Revert / Cancel Change
-                </Button>
-              </div>
-              <p class="text-center text-xs text-gray-500 md:text-left dark:text-gray-400">
-                Max file size: 2MB. JPG, PNG.
-              </p>
-            </div>
-
-            <div class="md:col-span-2 space-y-4">
-              <div>
-                <Label for="userFullNameEdit" class="mb-1 block text-sm font-medium">
-                  Name <span class="text-red-500">*</span>
+                  {{ permission.name }}
                 </Label>
-                <Input
-                  id="userFullNameEdit"
-                  v-model="userToEdit.name"
-                  placeholder="Enter full name"
-                  :disabled="isLoadingUser"
-                />
-              </div>
-
-              <div>
-                <Label for="userUsernameEdit" class="mb-1 block text-sm font-medium">
-                  Username <span class="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="userUsernameEdit"
-                  v-model="userToEdit.username"
-                  placeholder="Enter username"
-                  :disabled="isLoadingUser"
-                />
-              </div>
-
-              <div>
-                <Label for="userEmailEdit" class="mb-1 block text-sm font-medium">Email</Label>
-                <Input
-                  id="userEmailEdit"
-                  v-model="userToEdit.email"
-                  type="email"
-                  placeholder="Enter email"
-                  :disabled="isLoadingUser"
-                />
-              </div>
-
-              <div>
-                <Label for="userRoleEdit" class="mb-1 block text-sm font-medium">
-                  Role <span class="text-red-500">*</span>
-                </Label>
-                <div v-if="isLoadingRoles" class="pt-2 text-sm text-gray-500 dark:text-gray-400">
-                  Loading roles...
-                </div>
-                <Select
-                  v-else-if="availableRoles.length > 0"
-                  v-model="userToEdit.role_id"
-                  :disabled="isLoadingUser || isLoadingRoles"
-                >
-                  <SelectTrigger
-                    id="userRoleEdit"
-                    :class="{ 'border-red-500': !userToEdit.role_id && !isLoadingRoles }"
-                  >
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Available Roles</SelectLabel>
-                      <SelectItem
-                        v-for="role in availableRoles"
-                        :key="role.id"
-                        :value="String(role.id)"
-                      >
-                        {{ role.name }}
-                      </SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <p v-else class="pt-2 text-sm text-red-500 dark:text-red-400">
-                  No roles available. A role is required to save.
-                </p>
-              </div>
-
-              <div class="flex items-center justify-between pt-2">
-                <Label for="userStatusEdit" class="text-sm font-medium">Status</Label>
-                <div class="flex items-center space-x-2">
-                  <Switch
-                    id="userStatusEdit"
-                    :checked="userToEdit.status"
-                    :disabled="isLoadingUser"
-                    @update:checked="(newVal: boolean) => (userToEdit!.status = newVal)"
-                  />
-                  <span class="text-sm text-gray-600 dark:text-gray-400">{{
-                    userToEdit.status ? 'ACTIVE' : 'INACTIVE'
-                  }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700">
-            <h3 class="text-md mb-3 text-gray-800 font-semibold dark:text-gray-200">
-              Update Password <span class="text-sm text-gray-500 font-normal">(optional)</span>
-            </h3>
-            <div class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-              <div>
-                <Label for="newPasswordEdit" class="mb-1 block text-sm font-medium">New Password</Label>
-                <Input
-                  id="newPasswordEdit"
-                  v-model="userToEdit.password"
-                  type="password"
-                  placeholder="Min. 6 characters"
-                  :disabled="isLoadingUser"
-                />
-              </div>
-              <div>
-                <Label for="confirmNewPasswordEdit" class="mb-1 block text-sm font-medium">Confirm New Password</Label>
-                <Input
-                  id="confirmNewPasswordEdit"
-                  v-model="userToEdit.confirm_password"
-                  type="password"
-                  placeholder="Confirm password"
-                  :disabled="isLoadingUser"
-                />
+                <!-- <span class="text-xs text-gray-400 dark:text-gray-500">
+                  {{ permission.slug }}
+                </span> -->
               </div>
             </div>
           </div>
         </div>
-
+        <div
+          v-else-if="!isLoadingPermissions && !permissionsError"
+          class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400"
+        >
+          No permissions available to assign.
+        </div>
         <DialogFooter
-          class="rounded-b-lg bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse dark:bg-slate-800"
+          class="border-t rounded-b-lg px-6 py-4 sm:flex sm:flex-row-reverse dark:border-gray-700"
         >
           <Button
             type="button"
-            :disabled="isSaveDisabled || isLoadingUser || isLoadingRoles"
-            @click="handleSaveChanges"
+            class="w-full inline-flex justify-center border border-transparent rounded-md px-4 py-2 text-base text-white font-medium shadow-sm sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            :disabled="isLoadingPermissions"
+            @click="handleSavePermissions"
           >
             <svg
-              v-if="isLoadingUser"
+              v-if="isLoadingPermissions"
               class="mr-3 h-5 w-5 animate-spin text-white -ml-1"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -1329,13 +1159,14 @@ watch(isDeleteDialogOpen, (newValue) => {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               />
             </svg>
-            {{ isLoadingUser ? 'Saving...' : 'Save Changes' }}
+            {{ isLoadingPermissions ? 'Saving...' : 'Save Permissions' }}
           </Button>
           <Button
             type="button"
             variant="outline"
-            :disabled="isLoadingUser || isLoadingRoles"
-            @click="isEditDialogOpen = false"
+            class="mt-3 w-full inline-flex justify-center border border-gray-300 rounded-md px-4 py-2 text-base text-gray-700 font-medium shadow-sm sm:ml-3 sm:mt-0 sm:w-auto dark:border-gray-500 sm:text-sm dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            :disabled="isLoadingPermissions"
+            @click="isPermissionsDialogOpen = false"
           >
             Cancel
           </Button>
@@ -1348,42 +1179,20 @@ watch(isDeleteDialogOpen, (newValue) => {
         <AlertDialogHeader>
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action will mark the user "{{ user.name }}" as deleted. This typically makes the
-            user inactive and may restrict their access or visibility. This can usually be undone by
-            an administrator.
+            This action cannot be undone. This will permanently delete the role "<strong>{{
+              role?.name
+            }}</strong>" and remove its data from our servers.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel :disabled="isLoadingUser">
+          <AlertDialogCancel @click="isDeleteDialogOpen = false">
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
-            class="bg-red-600 text-white dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600"
-            :disabled="isLoadingUser"
-            @click="confirmDeleteUser"
+            class="bg-red-600 dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600"
+            @click="confirmDeleteRole"
           >
-            <svg
-              v-if="isLoadingUser"
-              class="mr-3 h-5 w-5 animate-spin text-white -ml-1"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              />
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-            {{ isLoadingUser ? 'Deleting...' : 'Yes, delete user' }}
+            Yes, delete role
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -1393,7 +1202,7 @@ watch(isDeleteDialogOpen, (newValue) => {
 
 ```
 
-# DataTableToolbar.vue
+# components/DataTableToolbar.vue
 
 ```vue
 <script setup lang="ts" generic="TData">
@@ -1410,56 +1219,56 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Toaster } from '@/components/ui/toast'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { roleStatuses as importedRoleStatuses } from '../data/data'
-import DataTableFacetedFilter from './DataTableFacetedFilter.vue'
+import { roleStatuses } from '../data/data' // Assuming this path is correct
+import DataTableFacetedFilter from './DataTableFacetedFilter.vue' // Assuming this path is correct
 import DataTableViewOptions from './DataTableViewOptions.vue'
-import ImageUploader from '@/components/ImageUploader.vue';
+// Assuming this path is correct
+const props = defineProps<DataTableToolbarProps>()
+
+// import { Icon } from '#components'; // Assuming Icon is globally available or imported if using Nuxt UI / Iconify
+
+// Mock useApi for standalone example if not provided
+function useApi() {
+  return async <T extends { success: boolean, message?: string, data?: any }>(
+    url: string,
+    options: { method: string, body: any },
+  ): Promise<T> => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500))
+    // Simulate a successful response
+    if (options.body.name === 'fail') {
+      return { success: false, message: 'Simulated API failure to create role.' } as T
+    }
+    return { success: true, data: { id: Date.now(), ...options.body } } as T
+  }
+}
 
 interface DataTableToolbarProps {
   table: Table<TData>
   onDataChanged?: () => void
 }
 
-interface RoleData {
-  id: string | number
-  name: string
-}
-
-interface CreateUserData {
-  name: string
-  username: string
-  email?: string
-  status: boolean
-  role_id?: string | number | null
-  password?: string
-  confirm_password?: string
-  avatar_file?: File | null
-}
-
-const props = defineProps<DataTableToolbarProps>()
 const { toast } = useToast()
-const api = useApi()
-
 const isFiltered = computed(() => props.table.getState().columnFilters.length > 0)
-const localSearchValue = ref<string>((props.table.getColumn('name')?.getFilterValue() as string) ?? '')
+const localSearchValue = ref<string>(
+  (props.table.getColumn('name')?.getFilterValue() as string) ?? '',
+)
 let debounceTimer: number | undefined
 
 watch(localSearchValue, (newValue) => {
-  if (debounceTimer) clearTimeout(debounceTimer)
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+  }
   debounceTimer = window.setTimeout(() => {
     props.table.getColumn('name')?.setFilterValue(newValue)
   }, 300)
@@ -1478,27 +1287,42 @@ watch(
 )
 
 const isNewRoleDialogOpen = ref(false)
-const newRoleData = ref({ name: '', status: 'ACTIVE', description: '' })
-const isLoadingSaveRole = ref(false)
-const createRoleError = ref<string | null>(null)
+const newRoleData = ref({
+  name: '',
+  status: 'ACTIVE',
+  description: '',
+})
 
 watch(isNewRoleDialogOpen, (isOpen) => {
   if (isOpen) {
-    newRoleData.value = { name: '', status: 'ACTIVE', description: '' }
-    createRoleError.value = null
+    newRoleData.value = {
+      name: '',
+      status: 'ACTIVE',
+      description: '',
+    }
   }
 })
 
-const isSaveRoleDisabled = computed(() => {
-  if (isLoadingSaveRole.value) return true
-  if (!newRoleData.value.name.trim()) return true
-  if (!newRoleData.value.status) return true
-  return false
-})
+const api = useApi()
 
 async function handleCreateRole() {
-  createRoleError.value = null
-  isLoadingSaveRole.value = true
+  if (!newRoleData.value.name.trim()) {
+    toast({
+      title: 'Validation Error',
+      description: 'Role name cannot be empty.',
+      variant: 'destructive',
+    })
+    return
+  }
+  if (!newRoleData.value.status) {
+    toast({
+      title: 'Validation Error',
+      description: 'Please select a role status.',
+      variant: 'destructive',
+    })
+    return
+  }
+
   try {
     const response = await api<{ success: boolean, message?: string, data?: any }>('/roles', {
       method: 'POST',
@@ -1506,292 +1330,201 @@ async function handleCreateRole() {
     })
 
     if (!response.success) {
-      createRoleError.value = response.message || `Failed to create role.`
-      toast({ title: 'Error', description: createRoleError.value, variant: 'destructive' })
+      throw new Error(response.message || `Failed to create role.`)
     }
-    else {
-      isNewRoleDialogOpen.value = false
-      toast({ title: 'Success', description: 'Role created.' })
-      props.onDataChanged?.()
-    }
-  }
-  catch (error: any) {
-    createRoleError.value = error.data?.message || error.message
-    toast({ title: 'Error', description: createRoleError.value, variant: 'destructive' })
-  }
-  finally {
-    isLoadingSaveRole.value = false
-  }
-}
-
-const isCreateUserDialogOpen = ref(false)
-const isLoadingCreateUser = ref(false)
-const createUserError = ref<string | null>(null)
-const avatarFiles = ref<File[]>([])
-const newUserData = ref<CreateUserData>({
-  name: '',
-  username: '',
-  email: '',
-  status: true,
-  role_id: null,
-  password: '',
-  confirm_password: '',
-  avatar_file: null,
-})
-const createUserAvailableRoles = ref<RoleData[]>([])
-const isLoadingCreateUserRoles = ref(false)
-
-watch(avatarFiles, (files) => {
-  newUserData.value.avatar_file = files.length > 0 ? files[0] : null
-})
-
-async function fetchCreateUserRoles() {
-  isLoadingCreateUserRoles.value = true
-  try {
-    const response = await api<RoleData[]>('/roles/active', { method: 'GET' })
-    if (response && Array.isArray(response)) {
-      createUserAvailableRoles.value = response
-    }
-    else if (response && (response as any).data && Array.isArray((response as any).data)) {
-      createUserAvailableRoles.value = (response as any).data
-    }
-  }
-  catch (error) {
-    toast({ title: 'Error', description: 'Failed to load roles.', variant: 'destructive' })
-  }
-  finally {
-    isLoadingCreateUserRoles.value = false
-  }
-}
-
-async function openCreateUserDialog() {
-  isCreateUserDialogOpen.value = true
-  avatarFiles.value = []
-  await fetchCreateUserRoles()
-}
-
-const isCreateUserSaveDisabled = computed(() => {
-  if (isLoadingCreateUser.value || isLoadingCreateUserRoles.value) return true
-  if (!newUserData.value.name.trim() || !newUserData.value.username.trim() || !newUserData.value.role_id) return true
-  if (newUserData.value.password && newUserData.value.password !== newUserData.value.confirm_password) return true
-  if (newUserData.value.password && newUserData.value.password.length < 6) return true
-  return false
-})
-
-async function handleCreateUser() {
-  createUserError.value = null
-  isLoadingCreateUser.value = true
-
-  const formData = new FormData()
-  formData.append('name', newUserData.value.name)
-  formData.append('username', newUserData.value.username)
-  if (newUserData.value.email) formData.append('email', newUserData.value.email)
-  formData.append('status', newUserData.value.status ? 'ACTIVE' : 'INACTIVE')
-  formData.append('role_id', String(newUserData.value.role_id))
-  if (newUserData.value.password) formData.append('password', newUserData.value.password)
-  if (newUserData.value.avatar_file) formData.append('image', newUserData.value.avatar_file)
-
-  try {
-    const response = await api<{ success: boolean, data?: any, message?: string }>('/users', {
-      method: 'POST',
-      body: formData,
+    isNewRoleDialogOpen.value = false
+    toast({
+      title: 'Role Created Successfully!',
+      description: `The role "${newRoleData.value.name}" has been added.`,
+      variant: 'default', // Or 'success' if you have one
     })
-
-    if (response.success) {
-      isCreateUserDialogOpen.value = false
-      toast({ title: 'Success', description: 'User created.' })
-      props.onDataChanged?.()
-    }
-    else {
-      createUserError.value = response.message || 'Failed to create user.'
-    }
+    props.onDataChanged?.()
   }
   catch (error: any) {
-    createUserError.value = error.data?.message || error.message
-  }
-  finally {
-    isLoadingCreateUser.value = false
+    console.error('Error creating role:', error)
+    toast({
+      title: 'Error Creating Role',
+      description: error.message || 'An unexpected error occurred. Please try again.',
+      variant: 'destructive',
+    })
   }
 }
-
-watch(isCreateUserDialogOpen, (newValue) => {
-  if (!newValue) {
-    avatarFiles.value = []
-    newUserData.value = {
-      name: '',
-      username: '',
-      email: '',
-      status: true,
-      role_id: null,
-      password: '',
-      confirm_password: '',
-      avatar_file: null,
-    }
-    createUserError.value = null
-  }
-})
 </script>
 
 <template>
   <div>
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between py-4">
       <div class="flex flex-1 items-center space-x-2">
         <Input
           v-model="localSearchValue"
           placeholder="Filter by name..."
-          class="h-8 w-[150px] lg:w-[250px]"
+          class="h-9 w-[180px] border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background lg:w-[280px] disabled:cursor-not-allowed file:border-0 file:bg-transparent file:text-sm placeholder:text-muted-foreground file:font-medium disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring"
         />
+
         <DataTableFacetedFilter
           v-if="table.getColumn('status')"
           :column="table.getColumn('status')"
           title="Status"
-          :options="importedRoleStatuses"
+          :options="roleStatuses"
         />
+
         <Button
           v-if="isFiltered"
           variant="ghost"
-          class="h-8 px-2 lg:px-3"
-          @click="() => { table.resetColumnFilters(); localSearchValue = ''; }"
+          class="h-9 px-3 text-sm lg:px-4"
+          @click="
+            () => {
+              table.resetColumnFilters();
+              localSearchValue = ''; // Also clear the local search input
+            }
+          "
         >
           Reset
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 15 15" class="ml-2 h-4 w-4">
-            <path fill="currentColor" d="M3.64 2.27L7.5 6.13l3.84-3.84A.9.9 0 0 1 12.6 2a1 1 0 0 1 1 .96a.9.9 0 0 1-.27.64L8.84 7.5l3.89 3.89A.9.9 0 0 1 13.5 12a1 1 0 0 1-.96 1a.9.9 0 0 1-.64-.27L7.5 8.87l-3.85 3.85A.9.9 0 0 1 2.4 13a1 1 0 0 1-1-.96a.9.9 0 0 1 .27-.64L5.16 7.5L1.27 3.61A.9.9 0 0 1 1 3.01A1 1 0 0 1 2.04 2a.9.9 0 0 1 .6-.27Z" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 15 15"
+            class="ml-2 h-4 w-4"
+          >
+            <path
+              fill="currentColor"
+              fill-rule="evenodd"
+              d="M11.782 4.032a.575.575 0 1 0-.813-.814L7.5 6.687L4.032 3.218a.575.575 0 0 0-.814.814L6.687 7.5l-3.469 3.468a.575.575 0 0 0 .814.814L7.5 8.313l3.469 3.469a.575.575 0 0 0 .813-.814L8.313 7.5l3.469-3.468Z"
+              clip-rule="evenodd"
+            />
           </svg>
         </Button>
       </div>
 
       <div class="flex items-center space-x-2">
         <Dialog v-model:open="isNewRoleDialogOpen">
-          <DialogContent class="rounded-lg shadow-xl sm:max-w-[480px]">
-            <DialogHeader>
-              <DialogTitle>Create New Role</DialogTitle>
-              <DialogDescription>Fields marked with <span class="text-red-500">*</span> are required.</DialogDescription>
+          <DialogTrigger as-child>
+            <Button
+              variant="outline"
+              class="h-9 flex items-center border-input rounded-md bg-background text-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 15 15"
+                class="mr-2 h-4 w-4"
+              >
+                <path
+                  fill="currentColor"
+                  d="M7.5 1a.5.5 0 0 0-.5.5V7H1a.5.5 0 0 0 0 1h6.5v6.5a.5.5 0 0 0 1 0V8H14a.5.5 0 0 0 0-1H8V1.5a.5.5 0 0 0-.5-.5Z"
+                />
+              </svg>
+              Add New Role
+            </Button>
+          </DialogTrigger>
+          <DialogContent class="rounded-lg bg-card text-card-foreground shadow-lg sm:max-w-md">
+            <DialogHeader class="p-6">
+              <DialogTitle class="text-xl font-semibold">
+                Create New Role
+              </DialogTitle>
+              <DialogDescription class="mt-1 text-sm text-muted-foreground">
+                Define the properties for the new role. Required fields are marked with an asterisk
+                (*).
+              </DialogDescription>
             </DialogHeader>
-            <div v-if="createRoleError" class="my-3 border border-red-300 rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
-              <strong>Error:</strong> {{ createRoleError }}
-            </div>
-            <form @submit.prevent="handleCreateRole">
-              <div class="grid gap-4 px-1 py-4">
-                <div class="grid grid-cols-4 items-center gap-4">
-                  <Label for="new-role-name" class="col-span-1 text-right">Name <span class="text-red-500">*</span></Label>
-                  <Input id="new-role-name" v-model="newRoleData.name" class="col-span-3" :disabled="isLoadingSaveRole" />
-                </div>
-                <div class="grid grid-cols-4 items-center gap-4">
-                  <Label for="new-role-status" class="col-span-1 text-right">Status <span class="text-red-500">*</span></Label>
-                  <Select v-model="newRoleData.status" :disabled="isLoadingSaveRole">
-                    <SelectTrigger id="new-role-status" class="col-span-3">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem v-for="status in importedRoleStatuses" :key="status.value" :value="status.value">
-                        {{ status.label }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div class="grid grid-cols-4 items-start gap-4">
-                  <Label for="new-role-description" class="col-span-1 pt-1 text-right">Description</Label>
-                  <Textarea id="new-role-description" v-model="newRoleData.description" class="col-span-3" :disabled="isLoadingSaveRole" />
-                </div>
+            <form class="px-6 pb-6 space-y-6" @submit.prevent="handleCreateRole">
+              <div class="space-y-2">
+                <label for="new-role-name" class="block text-sm text-foreground font-medium">
+                  Role Name <span class="text-destructive">*</span>
+                </label>
+                <Input
+                  id="new-role-name"
+                  v-model="newRoleData.name"
+                  class="h-10 w-full border-input rounded-md bg-background px-3 py-2 text-sm"
+                  placeholder="e.g., Content Editor"
+                  required
+                />
               </div>
-              <DialogFooter class="bg-gray-50 px-6 py-4 dark:bg-slate-800">
-                <Button type="submit" :disabled="isSaveRoleDisabled">
-                  {{ isLoadingSaveRole ? 'Saving...' : 'Save Role' }}
+
+              <div class="space-y-2">
+                <label for="new-role-status" class="block text-sm text-foreground font-medium">
+                  Status <span class="text-destructive">*</span>
+                </label>
+                <Select v-model="newRoleData.status" required>
+                  <SelectTrigger
+                    id="new-role-status"
+                    class="h-10 w-full border-input rounded-md bg-background px-3 py-2 text-sm"
+                  >
+                    <SelectValue placeholder="Select a status" />
+                  </SelectTrigger>
+                  <SelectContent class="rounded-md bg-popover text-popover-foreground shadow-lg">
+                    <SelectItem
+                      v-for="statusOption in roleStatuses"
+                      :key="statusOption.value"
+                      :value="statusOption.value"
+                      class="focus:bg-accent hover:bg-accent"
+                    >
+                      {{ statusOption.label }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div class="space-y-2">
+                <label for="new-role-description" class="block text-sm text-foreground font-medium">
+                  Description <span class="text-xs text-muted-foreground">(Optional)</span>
+                </label>
+                <Textarea
+                  id="new-role-description"
+                  v-model="newRoleData.description"
+                  class="min-h-[80px] w-full border-input rounded-md bg-background px-3 py-2 text-sm"
+                  placeholder="Provide a brief summary of the role's responsibilities and permissions."
+                />
+              </div>
+
+              <DialogFooter
+                class="flex flex-col pt-6 sm:flex-row sm:justify-end space-y-2 sm:space-x-2 sm:space-y-0"
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  class="h-9 w-full rounded-md text-sm sm:w-auto"
+                  @click="isNewRoleDialogOpen = false"
+                >
+                  Cancel
                 </Button>
-                <Button type="button" variant="outline" @click="isNewRoleDialogOpen = false">Cancel</Button>
+                <Button
+                  type="submit"
+                  class="h-9 w-full rounded-md bg-primary text-sm text-primary-foreground sm:w-auto hover:bg-primary/90"
+                >
+                  Save Role
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
-
-        <Dialog v-model:open="isCreateUserDialogOpen">
-          <DialogTrigger as-child>
-            <Button variant="outline" size="sm" class="h-8" @click="openCreateUserDialog">Add User</Button>
-          </DialogTrigger>
-          <DialogContent class="md:max-w-4xl sm:max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
-            </DialogHeader>
-
-            <div v-if="createUserError" class="m-6 border border-red-300 bg-red-50 px-4 py-3 text-red-700">
-              {{ createUserError }}
-            </div>
-
-            <div class="max-h-[70vh] overflow-y-auto p-6">
-              <div class="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-3">
-                <div class="flex flex-col items-center md:col-span-1 space-y-3">
-                  <Label class="self-start font-medium">User Avatar</Label>
-                  <ImageUploader 
-                    v-model="avatarFiles"
-                    :max-files="1"
-                    :disabled="isLoadingCreateUser"
-                  />
-                  <p class="text-xs text-gray-500 text-center md:text-left">Max size: 2MB. JPG, PNG.</p>
-                </div>
-
-                <div class="md:col-span-2 space-y-4">
-                  <div>
-                    <Label class="mb-1 block">Name <span class="text-red-500">*</span></Label>
-                    <Input v-model="newUserData.name" :disabled="isLoadingCreateUser" />
-                  </div>
-                  <div>
-                    <Label class="mb-1 block">Username <span class="text-red-500">*</span></Label>
-                    <Input v-model="newUserData.username" :disabled="isLoadingCreateUser" />
-                  </div>
-                  <div>
-                    <Label class="mb-1 block">Email</Label>
-                    <Input v-model="newUserData.email" type="email" :disabled="isLoadingCreateUser" />
-                  </div>
-                  <div>
-                    <Label class="mb-1 block">Role <span class="text-red-500">*</span></Label>
-                    <Select v-model="newUserData.role_id" :disabled="isLoadingCreateUser || isLoadingCreateUserRoles">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem v-for="role in createUserAvailableRoles" :key="role.id" :value="String(role.id)">
-                          {{ role.name }}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div class="flex items-center justify-between pt-2">
-                    <Label>Status</Label>
-                    <div class="flex items-center space-x-2">
-                      <Switch :checked="newUserData.status" @update:checked="(v) => newUserData.status = v" />
-                      <span class="text-sm">{{ newUserData.status ? 'ACTIVE' : 'INACTIVE' }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mt-6 border-t pt-6">
-                <h3 class="mb-3 font-semibold">Set Password <span class="text-red-500">*</span></h3>
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Input v-model="newUserData.password" type="password" placeholder="Password" />
-                  <Input v-model="newUserData.confirm_password" type="password" placeholder="Confirm" />
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter class="bg-gray-50 px-6 py-4 dark:bg-slate-800">
-              <Button :disabled="isCreateUserSaveDisabled" @click="handleCreateUser">
-                {{ isLoadingCreateUser ? 'Creating...' : 'Create User' }}
-              </Button>
-              <Button variant="outline" @click="isCreateUserDialogOpen = false">Cancel</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
         <DataTableViewOptions :table="table" />
       </div>
     </div>
     <Toaster />
   </div>
 </template>
+
+<style>
+/* Add any global styles or component-specific styles here if needed */
+/* For example, to ensure the dialog overlay is dark enough */
+/* This might be handled by shadcn/ui defaults already */
+
+/* Placeholder for roleStatuses if not provided */
+/*
+const roleStatuses = [
+  { value: 'ACTIVE', label: 'Active', icon: 'i-lucide-check-circle' },
+  { value: 'INACTIVE', label: 'Inactive', icon: 'i-lucide-x-circle' },
+  { value: 'PENDING', label: 'Pending', icon: 'i-lucide-clock' },
+];
+*/
+</style>
+
 ```
 
-# DataTableViewOptions.vue
+# components/DataTableViewOptions.vue
 
 ```vue
 <script setup lang="ts">
@@ -1840,6 +1573,786 @@ const columns = computed(() => props.table.getAllColumns()
     </DropdownMenuContent>
   </DropdownMenu>
 </template>
+
+```
+
+# data/data.ts
+
+```ts
+export const labels = [
+  { value: 'bug', label: 'Bug' },
+  { value: 'feature', label: 'Feature' },
+  { value: 'documentation', label: 'Documentation' },
+]
+
+export const statuses = [
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+]
+
+export const priorities = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+]
+
+export const roleStatuses = [
+  {
+    value: 'ACTIVE',
+    label: 'Active',
+  },
+  {
+    value: 'INACTIVE',
+    label: 'Inactive',
+  },
+]
+
+```
+
+# data/schema.ts
+
+```ts
+// data/schema.ts
+import { z } from 'zod'
+
+export const taskSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  status: z.string(),
+  label: z.string(),
+  priority: z.string(),
+})
+
+export type Task = z.infer<typeof taskSchema>
+
+export const permissionSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+})
+
+export type Permission = z.infer<typeof permissionSchema>
+
+export const roleSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  status: z.string().optional(),
+  created_by: z.string().optional(),
+  permissions: z.array(permissionSchema).optional(),
+  // created_at: z.string().optional(), // If you need to display/use this
+})
+
+export type Role = z.infer<typeof roleSchema>
+
+```
+
+# data/tasks.json
+
+```json
+{
+  "data": [
+    {
+      "id": "TASK-8782",
+      "title": "You can't compress the program without quantifying the open-source SSD pixel!",
+      "status": "in progress",
+      "label": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-7878",
+      "title": "Try to calculate the EXE feed, maybe it will index the multi-byte pixel!",
+      "status": "backlog",
+      "label": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-7839",
+      "title": "We need to bypass the neural TCP card!",
+      "status": "todo",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-5562",
+      "title": "The SAS interface is down, bypass the open-source pixel so we can back up the PNG bandwidth!",
+      "status": "backlog",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-8686",
+      "title": "I'll parse the wireless SSL protocol, that should driver the API panel!",
+      "status": "canceled",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-1280",
+      "title": "Use the digital TLS panel, then you can transmit the haptic system!",
+      "status": "done",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-7262",
+      "title": "The UTF8 application is down, parse the neural bandwidth so we can back up the PNG firewall!",
+      "status": "done",
+      "label": "feature",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-1138",
+      "title": "Generating the driver won't do anything, we need to quantify the 1080p SMTP bandwidth!",
+      "status": "in progress",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-7184",
+      "title": "We need to program the back-end THX pixel!",
+      "status": "todo",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-5160",
+      "title": "Calculating the bus won't do anything, we need to navigate the back-end JSON protocol!",
+      "status": "in progress",
+      "label": "documentation",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-5618",
+      "title": "Generating the driver won't do anything, we need to index the online SSL application!",
+      "status": "done",
+      "label": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-6699",
+      "title": "I'll transmit the wireless JBOD capacitor, that should hard drive the SSD feed!",
+      "status": "backlog",
+      "label": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-2858",
+      "title": "We need to override the online UDP bus!",
+      "status": "backlog",
+      "label": "bug",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-9864",
+      "title": "I'll reboot the 1080p FTP panel, that should matrix the HEX hard drive!",
+      "status": "done",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-8404",
+      "title": "We need to generate the virtual HEX alarm!",
+      "status": "in progress",
+      "label": "bug",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-5365",
+      "title": "Backing up the pixel won't do anything, we need to transmit the primary IB array!",
+      "status": "in progress",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-1780",
+      "title": "The CSS feed is down, index the bluetooth transmitter so we can compress the CLI protocol!",
+      "status": "todo",
+      "label": "documentation",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-6938",
+      "title": "Use the redundant SCSI application, then you can hack the optical alarm!",
+      "status": "todo",
+      "label": "documentation",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-9885",
+      "title": "We need to compress the auxiliary VGA driver!",
+      "status": "backlog",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-3216",
+      "title": "Transmitting the transmitter won't do anything, we need to compress the virtual HDD sensor!",
+      "status": "backlog",
+      "label": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-9285",
+      "title": "The IP monitor is down, copy the haptic alarm so we can generate the HTTP transmitter!",
+      "status": "todo",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-1024",
+      "title": "Overriding the microchip won't do anything, we need to transmit the digital OCR transmitter!",
+      "status": "in progress",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-7068",
+      "title": "You can't generate the capacitor without indexing the wireless HEX pixel!",
+      "status": "canceled",
+      "label": "bug",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-6502",
+      "title": "Navigating the microchip won't do anything, we need to bypass the back-end SQL bus!",
+      "status": "todo",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-5326",
+      "title": "We need to hack the redundant UTF8 transmitter!",
+      "status": "todo",
+      "label": "bug",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-6274",
+      "title": "Use the virtual PCI circuit, then you can parse the bluetooth alarm!",
+      "status": "canceled",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-1571",
+      "title": "I'll input the neural DRAM circuit, that should protocol the SMTP interface!",
+      "status": "in progress",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-9518",
+      "title": "Compressing the interface won't do anything, we need to compress the online SDD matrix!",
+      "status": "canceled",
+      "label": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-5581",
+      "title": "I'll synthesize the digital COM pixel, that should transmitter the UTF8 protocol!",
+      "status": "backlog",
+      "label": "documentation",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-2197",
+      "title": "Parsing the feed won't do anything, we need to copy the bluetooth DRAM bus!",
+      "status": "todo",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-8484",
+      "title": "We need to parse the solid state UDP firewall!",
+      "status": "in progress",
+      "label": "bug",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-9892",
+      "title": "If we back up the application, we can get to the UDP application through the multi-byte THX capacitor!",
+      "status": "done",
+      "label": "documentation",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-9616",
+      "title": "We need to synthesize the cross-platform ASCII pixel!",
+      "status": "in progress",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-9744",
+      "title": "Use the back-end IP card, then you can input the solid state hard drive!",
+      "status": "done",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-1376",
+      "title": "Generating the alarm won't do anything, we need to generate the mobile IP capacitor!",
+      "status": "backlog",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-7382",
+      "title": "If we back up the firewall, we can get to the RAM alarm through the primary UTF8 pixel!",
+      "status": "todo",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-2290",
+      "title": "I'll compress the virtual JSON panel, that should application the UTF8 bus!",
+      "status": "canceled",
+      "label": "documentation",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-1533",
+      "title": "You can't input the firewall without overriding the wireless TCP firewall!",
+      "status": "done",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-4920",
+      "title": "Bypassing the hard drive won't do anything, we need to input the bluetooth JSON program!",
+      "status": "in progress",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-5168",
+      "title": "If we synthesize the bus, we can get to the IP panel through the virtual TLS array!",
+      "status": "in progress",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-7103",
+      "title": "We need to parse the multi-byte EXE bandwidth!",
+      "status": "canceled",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-4314",
+      "title": "If we compress the program, we can get to the XML alarm through the multi-byte COM matrix!",
+      "status": "in progress",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-3415",
+      "title": "Use the cross-platform XML application, then you can quantify the solid state feed!",
+      "status": "todo",
+      "label": "feature",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-8339",
+      "title": "Try to calculate the DNS interface, maybe it will input the bluetooth capacitor!",
+      "status": "in progress",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-6995",
+      "title": "Try to hack the XSS bandwidth, maybe it will override the bluetooth matrix!",
+      "status": "todo",
+      "label": "feature",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-8053",
+      "title": "If we connect the program, we can get to the UTF8 matrix through the digital UDP protocol!",
+      "status": "todo",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-4336",
+      "title": "If we synthesize the microchip, we can get to the SAS sensor through the optical UDP program!",
+      "status": "todo",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-8790",
+      "title": "I'll back up the optical COM alarm, that should alarm the RSS capacitor!",
+      "status": "done",
+      "label": "bug",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-8980",
+      "title": "Try to navigate the SQL transmitter, maybe it will back up the virtual firewall!",
+      "status": "canceled",
+      "label": "bug",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-7342",
+      "title": "Use the neural CLI card, then you can parse the online port!",
+      "status": "backlog",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-5608",
+      "title": "I'll hack the haptic SSL program, that should bus the UDP transmitter!",
+      "status": "canceled",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-1606",
+      "title": "I'll generate the bluetooth PNG firewall, that should pixel the SSL driver!",
+      "status": "done",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-7872",
+      "title": "Transmitting the circuit won't do anything, we need to reboot the 1080p RSS monitor!",
+      "status": "canceled",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-4167",
+      "title": "Use the cross-platform SMS circuit, then you can synthesize the optical feed!",
+      "status": "canceled",
+      "label": "bug",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-9581",
+      "title": "You can't index the port without hacking the cross-platform XSS monitor!",
+      "status": "backlog",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-8806",
+      "title": "We need to bypass the back-end SSL panel!",
+      "status": "done",
+      "label": "bug",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-6542",
+      "title": "Try to quantify the RSS firewall, maybe it will quantify the open-source system!",
+      "status": "done",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-6806",
+      "title": "The VGA protocol is down, reboot the back-end matrix so we can parse the CSS panel!",
+      "status": "canceled",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-9549",
+      "title": "You can't bypass the bus without connecting the neural JBOD bus!",
+      "status": "todo",
+      "label": "feature",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-1075",
+      "title": "Backing up the driver won't do anything, we need to parse the redundant RAM pixel!",
+      "status": "done",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-1427",
+      "title": "Use the auxiliary PCI circuit, then you can calculate the cross-platform interface!",
+      "status": "done",
+      "label": "documentation",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-1907",
+      "title": "Hacking the circuit won't do anything, we need to back up the online DRAM system!",
+      "status": "todo",
+      "label": "documentation",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-4309",
+      "title": "If we generate the system, we can get to the TCP sensor through the optical GB pixel!",
+      "status": "backlog",
+      "label": "bug",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-3973",
+      "title": "I'll parse the back-end ADP array, that should bandwidth the RSS bandwidth!",
+      "status": "todo",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-7962",
+      "title": "Use the wireless RAM program, then you can hack the cross-platform feed!",
+      "status": "canceled",
+      "label": "bug",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-3360",
+      "title": "You can't quantify the program without synthesizing the neural OCR interface!",
+      "status": "done",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-9887",
+      "title": "Use the auxiliary ASCII sensor, then you can connect the solid state port!",
+      "status": "backlog",
+      "label": "bug",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-3649",
+      "title": "I'll input the virtual USB system, that should circuit the DNS monitor!",
+      "status": "in progress",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-3586",
+      "title": "If we quantify the circuit, we can get to the CLI feed through the mobile SMS hard drive!",
+      "status": "in progress",
+      "label": "bug",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-5150",
+      "title": "I'll hack the wireless XSS port, that should transmitter the IP interface!",
+      "status": "canceled",
+      "label": "feature",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-3652",
+      "title": "The SQL interface is down, override the optical bus so we can program the ASCII interface!",
+      "status": "backlog",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-6884",
+      "title": "Use the digital PCI circuit, then you can synthesize the multi-byte microchip!",
+      "status": "canceled",
+      "label": "feature",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-1591",
+      "title": "We need to connect the mobile XSS driver!",
+      "status": "in progress",
+      "label": "feature",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-3802",
+      "title": "Try to override the ASCII protocol, maybe it will parse the virtual matrix!",
+      "status": "in progress",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-7253",
+      "title": "Programming the capacitor won't do anything, we need to bypass the neural IB hard drive!",
+      "status": "backlog",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-9739",
+      "title": "We need to hack the multi-byte HDD bus!",
+      "status": "done",
+      "label": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-4424",
+      "title": "Try to hack the HEX alarm, maybe it will connect the optical pixel!",
+      "status": "in progress",
+      "label": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-3922",
+      "title": "You can't back up the capacitor without generating the wireless PCI program!",
+      "status": "backlog",
+      "label": "bug",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-4921",
+      "title": "I'll index the open-source IP feed, that should system the GB application!",
+      "status": "canceled",
+      "label": "bug",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-5814",
+      "title": "We need to calculate the 1080p AGP feed!",
+      "status": "backlog",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-2645",
+      "title": "Synthesizing the system won't do anything, we need to navigate the multi-byte HDD firewall!",
+      "status": "todo",
+      "label": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-4535",
+      "title": "Try to copy the JSON circuit, maybe it will connect the wireless feed!",
+      "status": "in progress",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-4463",
+      "title": "We need to copy the solid state AGP monitor!",
+      "status": "done",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-9745",
+      "title": "If we connect the protocol, we can get to the GB system through the bluetooth PCI microchip!",
+      "status": "canceled",
+      "label": "feature",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-2080",
+      "title": "If we input the bus, we can get to the RAM matrix through the auxiliary RAM card!",
+      "status": "todo",
+      "label": "bug",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-3838",
+      "title": "I'll bypass the online TCP application, that should panel the AGP system!",
+      "status": "backlog",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-1340",
+      "title": "We need to navigate the virtual PNG circuit!",
+      "status": "todo",
+      "label": "bug",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-6665",
+      "title": "If we parse the monitor, we can get to the SSD hard drive through the cross-platform AGP alarm!",
+      "status": "canceled",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-7585",
+      "title": "If we calculate the hard drive, we can get to the SSL program through the multi-byte CSS microchip!",
+      "status": "backlog",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-6319",
+      "title": "We need to copy the multi-byte SCSI program!",
+      "status": "backlog",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-4369",
+      "title": "Try to input the SCSI bus, maybe it will generate the 1080p pixel!",
+      "status": "backlog",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-9035",
+      "title": "We need to override the solid state PNG array!",
+      "status": "canceled",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-3970",
+      "title": "You can't index the transmitter without quantifying the haptic ASCII card!",
+      "status": "todo",
+      "label": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-4473",
+      "title": "You can't bypass the protocol without overriding the neural RSS program!",
+      "status": "todo",
+      "label": "documentation",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-4136",
+      "title": "You can't hack the hard drive without hacking the primary JSON program!",
+      "status": "canceled",
+      "label": "bug",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-3939",
+      "title": "Use the back-end SQL firewall, then you can connect the neural hard drive!",
+      "status": "done",
+      "label": "feature",
+      "priority": "low"
+    },
+    {
+      "id": "TASK-2007",
+      "title": "I'll input the back-end USB protocol, that should bandwidth the PCI system!",
+      "status": "backlog",
+      "label": "bug",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-7516",
+      "title": "Use the primary SQL program, then you can generate the auxiliary transmitter!",
+      "status": "done",
+      "label": "documentation",
+      "priority": "medium"
+    },
+    {
+      "id": "TASK-6906",
+      "title": "Try to back up the DRAM system, maybe it will reboot the online transmitter!",
+      "status": "done",
+      "label": "feature",
+      "priority": "high"
+    },
+    {
+      "id": "TASK-5207",
+      "title": "The SMS interface is down, copy the bluetooth bus so we can quantify the VGA card!",
+      "status": "in progress",
+      "label": "bug",
+      "priority": "low"
+    }
+  ]
+}
 
 ```
 

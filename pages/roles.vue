@@ -6,33 +6,27 @@ import type {
   Updater,
 } from '@tanstack/vue-table'
 
-import type { Role } from '@/components/roles/data/schema' // Adjust path
+import type { Role } from '@/components/roles/data/schema'
 import { onMounted, ref } from 'vue'
-import { roleColumns } from '@/components/roles/components/columns' // Adjust path
+import { roleColumns } from '@/components/roles/components/columns'
+import DataTable from '@/components/roles/components/DataTable.vue'
+import { valueUpdater } from '@/lib/utils'
 
-import DataTable from '@/components/roles/components/DataTable.vue' // Adjust path as needed
-import { valueUpdater } from '@/lib/utils' // Your existing utility
-
-// Assuming useApi composable or similar for API calls
-// import { useApi } from '@/composables/useApi'; // Example
+const { t } = useI18n()
 
 const rolesData = ref<Role[]>([])
 const isLoading = ref(true)
 
-// --- Table States for Server-Side Control ---
 const pagination = ref<PaginationState>({
-  pageIndex: 0, // TanStack Table is 0-indexed for page
-  pageSize: 10, // Default page size
+  pageIndex: 0, 
+  pageSize: 10,
 })
 
 const sorting = ref<SortingState>([])
-
 const columnFilters = ref<ColumnFiltersState>([])
-
 const pageCount = ref(0)
 const totalRows = ref(0)
 
-// --- API Fetching Logic ---
 async function fetchRoles() {
   isLoading.value = true
   const params: Record<string, any> = {
@@ -44,8 +38,7 @@ async function fetchRoles() {
     const sortItem = sorting.value[0]
     params.sort_by = sortItem.id
     params.sort_dir = sortItem.desc ? 'desc' : 'asc'
-  }
-  else {
+  } else {
     params.sort_by = 'created_at'
     params.sort_dir = 'desc'
   }
@@ -53,12 +46,10 @@ async function fetchRoles() {
   columnFilters.value.forEach((filter) => {
     if (filter.id === 'name') {
       params.search = filter.value
-    }
-    else if (filter.id === 'status') {
+    } else if (filter.id === 'status') {
       if (Array.isArray(filter.value) && filter.value.length > 0) {
         params.status = filter.value.join(',')
-      }
-      else if (typeof filter.value === 'string') {
+      } else if (typeof filter.value === 'string') {
         params.status = filter.value
       }
     }
@@ -66,32 +57,24 @@ async function fetchRoles() {
 
   const api = useApi()
   try {
-    const response = await api('/roles', { params }) // Your actual API call
+    const response = await api('/roles', { params })
     rolesData.value = response.data
     pageCount.value = response.meta.last_page
     totalRows.value = response.meta.total
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to fetch roles:', error)
     rolesData.value = []
     pageCount.value = 0
     totalRows.value = 0
-  }
-  finally {
+  } finally {
     isLoading.value = false
   }
-  isLoading.value = false // Ensure isLoading is set to false after mock
 }
 
-// --- Handlers for DataTable emitted events ---
 function handlePaginationChange(updaterOrValue: Updater<PaginationState>) {
   const oldPageSize = pagination.value.pageSize
-
   valueUpdater(updaterOrValue, pagination)
-
-  const newPageSize = pagination.value.pageSize
-
-  if (oldPageSize !== newPageSize) {
+  if (oldPageSize !== pagination.value.pageSize) {
     pagination.value.pageIndex = 0
   }
   fetchRoles()
@@ -117,10 +100,10 @@ onMounted(fetchRoles)
     <div class="flex flex-wrap items-end justify-between gap-2">
       <div>
         <h2 class="text-2xl font-bold tracking-tight">
-          Role Permission
+          {{ $t('nav.role_permission') }}
         </h2>
         <p class="text-muted-foreground">
-          Here&apos;s a list of your permission for this month!
+          {{ $t('common.role_description_subtitle') }}
         </p>
       </div>
     </div>
@@ -138,6 +121,7 @@ onMounted(fetchRoles)
       @pagination-change="handlePaginationChange"
       @sorting-change="handleSortingChange"
       @column-filters-change="handleColumnFiltersChange"
+      :on-data-changed="fetchRoles"
     />
   </div>
 </template>

@@ -46,10 +46,8 @@ definePageMeta({
           error.value = 'Login failed. Please check your credentials.'
         }
       } else {
-        // Login successful, redirect to dashboard
         await router.push('/dashboard')
       }
-  
   }
   catch (e: any) {
     console.error('Admin login exception:', e)

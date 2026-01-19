@@ -26,7 +26,8 @@ const selectedValues = computed(() => new Set(props.column?.getFilterValue() as 
     <PopoverTrigger as-child>
       <Button variant="outline" size="sm" class="h-8 border-dashed">
         <Icon name="i-radix-icons-plus-circled" class="mr-2 h-4 w-4" />
-        {{ title }}
+        {{ $t(title || '') }}
+        
         <template v-if="selectedValues.size > 0">
           <Separator orientation="vertical" class="mx-2 h-4" />
           <Badge
@@ -41,7 +42,7 @@ const selectedValues = computed(() => new Set(props.column?.getFilterValue() as 
               variant="secondary"
               class="rounded-sm px-1 font-normal"
             >
-              {{ selectedValues.size }} selected
+              {{ $t('common.selected_count', { count: selectedValues.size }) }}
             </Badge>
 
             <template v-else>
@@ -52,7 +53,7 @@ const selectedValues = computed(() => new Set(props.column?.getFilterValue() as 
                 variant="secondary"
                 class="rounded-sm px-1 font-normal"
               >
-                {{ item.label }}
+                {{ $t(item.label) }}
               </Badge>
             </template>
           </div>
@@ -63,9 +64,9 @@ const selectedValues = computed(() => new Set(props.column?.getFilterValue() as 
       <Command
         :filter-function="(list: DataTableFacetedFilter['options'], term: any) => list.filter(i => i.label.toLowerCase()?.includes(term))"
       >
-        <CommandInput :placeholder="title" />
+        <CommandInput :placeholder="$t(title || '')" />
         <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandEmpty>{{ $t('common.no_results') }}</CommandEmpty>
           <CommandGroup>
             <CommandItem
               v-for="option in options"
@@ -96,7 +97,7 @@ const selectedValues = computed(() => new Set(props.column?.getFilterValue() as 
                 <Icon name="i-radix-icons-check" :class="cn('h-4 w-4')" />
               </div>
               <component :is="option.icon" v-if="option.icon" class="mr-2 h-4 w-4 text-muted-foreground" />
-              <span>{{ option.label }}</span>
+              <span>{{ $t(option.label) }}</span>
               <span v-if="facets?.get(option.value)" class="ml-auto h-4 w-4 flex items-center justify-center text-xs font-mono">
                 {{ facets.get(option.value) }}
               </span>
@@ -111,7 +112,7 @@ const selectedValues = computed(() => new Set(props.column?.getFilterValue() as 
                 class="justify-center text-center"
                 @select="column?.setFilterValue(undefined)"
               >
-                Clear filters
+                {{ $t('common.clear_filters') }}
               </CommandItem>
             </CommandGroup>
           </template>

@@ -17,19 +17,19 @@ interface StatusDisplayConfig {
 
 const statusConfigurations: Record<string, StatusDisplayConfig> = {
   ACTIVE: {
-    label: 'ACTIVE',
+    label: 'common.active', // Changed to key
     badgeClass:
       'bg-green-100 text-green-700 dark:bg-green-700/20 dark:text-green-400 border border-green-200 dark:border-green-600/30',
     dotClass: 'bg-green-500 dark:bg-green-400',
   },
   INACTIVE: {
-    label: 'INACTIVE',
+    label: 'common.inactive', // Changed to key
     badgeClass:
       'bg-red-100 text-red-700 dark:bg-red-700/20 dark:text-red-400 border border-red-200 dark:border-red-600/30',
     dotClass: 'bg-red-500 dark:bg-red-400',
   },
   DEFAULT: {
-    label: 'UNKNOWN',
+    label: 'common.unknown', // Changed to key
     badgeClass:
       'bg-gray-100 text-gray-600 dark:bg-gray-600/20 dark:text-gray-400 border border-gray-200 dark:border-gray-500/30',
     dotClass: 'bg-gray-400',
@@ -39,7 +39,7 @@ const statusConfigurations: Record<string, StatusDisplayConfig> = {
 export const roleColumns: ColumnDef<Role>[] = [
   {
     id: 'index',
-    header: ({ column }) => h(DataTableColumnHeader, { column, title: '#' }),
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'common.index' }), // Key
     cell: ({ row, table }) => {
       const { pageIndex, pageSize } = table.getState().pagination
       const globalIndex = pageIndex * pageSize + row.index + 1
@@ -50,19 +50,19 @@ export const roleColumns: ColumnDef<Role>[] = [
   },
   {
     accessorKey: 'name',
-    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'Name' }),
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'common.name' }), // Key
     cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('name')),
     enableSorting: true,
   },
   {
     accessorKey: 'description',
-    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'Description' }),
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'common.description' }), // Key
     cell: ({ row }) => h('div', {}, row.getValue('description') || 'N/A'),
     enableSorting: false,
   },
   {
     accessorKey: 'status',
-    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'Status' }),
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'common.status' }), // Key
     cell: ({ row }) => {
       const statusValue = String(row.getValue('status') || '').toUpperCase()
       const config = statusConfigurations[statusValue] || statusConfigurations.DEFAULT
@@ -74,7 +74,8 @@ export const roleColumns: ColumnDef<Role>[] = [
         },
         () => [
           h('span', { class: `w-1.5 h-1.5 mr-1.5 rounded-full ${config.dotClass}` }),
-          config.label,
+          // We wrap the label in a function that will be translated by the component
+          useNuxtApp().$i18n.t(config.label),
         ],
       )
     },
@@ -82,7 +83,7 @@ export const roleColumns: ColumnDef<Role>[] = [
   },
   {
     id: 'actions',
-    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'Actions' }),
+    header: ({ column }) => h(DataTableColumnHeader, { column, title: 'common.actions' }), // Key
     cell: ({ row, table }) => {
       const meta = table.options.meta as CustomTableMeta
       return h(RoleRowActions, {

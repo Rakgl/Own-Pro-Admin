@@ -2,44 +2,36 @@
 import type {
   ColumnDef,
   ColumnFiltersState,
-  PaginationState, // Added for server-side pagination state
+  PaginationState,
   SortingState,
   Updater,
   VisibilityState,
 } from '@tanstack/vue-table'
 import { FlexRender, getCoreRowModel, useVueTable } from '@tanstack/vue-table'
-import { ref } from 'vue' // Make sure ref is imported if not already
+import { ref } from 'vue'
 
-import { valueUpdater } from '@/lib/utils' // Assuming this utility exists
+import { valueUpdater } from '@/lib/utils'
 import DataTablePagination from './DataTablePagination.vue'
-import DataTableToolbar from './DataTableToolbar.vue' // Toolbar will need to be adapted for Role data
+import DataTableToolbar from './DataTableToolbar.vue'
 
 interface DataTableProps {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
-
-  // --- NEW Props for Server-Side Operations ---
-  pageCount: number // Total number of pages from the API (meta.last_page)
-  pagination: PaginationState // Controlled pagination state
-  sorting?: SortingState // Controlled sorting state
-  columnFilters?: ColumnFiltersState // Controlled column filters state
-
-  // Event emitters for state changes to be handled by parent
+  pageCount: number
+  pagination: PaginationState
+  sorting?: SortingState
+  columnFilters?: ColumnFiltersState
   onPaginationChange: (updater: Updater<PaginationState>) => void
   onSortingChange?: (updater: Updater<SortingState>) => void
   onColumnFiltersChange?: (updater: Updater<ColumnFiltersState>) => void
-
-  // Flags to enable server-side processing
   manualPagination?: boolean
   manualSorting?: boolean
   manualFiltering?: boolean
-  // --- END NEW Props ---
 }
 const props = defineProps<DataTableProps>()
 
-// Local states for features not (yet) server-controlled or always client-side
 const columnVisibility = ref<VisibilityState>({})
-const rowSelection = ref({}) // Keep if you use row selection
+const rowSelection = ref({})
 
 const table = useVueTable({
   get data() {
@@ -49,7 +41,6 @@ const table = useVueTable({
     return props.columns
   },
   state: {
-    // Controlled states from props
     get pagination() {
       return props.pagination
     },
@@ -59,7 +50,6 @@ const table = useVueTable({
     get columnFilters() {
       return props.columnFilters
     },
-    // Local states
     get columnVisibility() {
       return columnVisibility.value
     },
@@ -67,28 +57,18 @@ const table = useVueTable({
       return rowSelection.value
     },
   },
-  // --- Configuration for Server-Side Operations ---
-  // pageCount: props.pageCount, // <<< OLD LINE
   get pageCount() {
-    // <<< MODIFIED LINE: Use a getter for reactivity
     return props.pageCount
   },
-  manualPagination: props.manualPagination ?? true, // Default to true if not provided
+  manualPagination: props.manualPagination ?? true,
   manualSorting: props.manualSorting ?? true,
   manualFiltering: props.manualFiltering ?? true,
-  // --- END Server-Side Configuration ---
-
-  enableRowSelection: true, // Or configure as needed
-
-  // Event handlers for controlled states
+  enableRowSelection: true,
   onPaginationChange: props.onPaginationChange,
   onSortingChange: props.onSortingChange,
   onColumnFiltersChange: props.onColumnFiltersChange,
-
-  // Event handlers for local states
   onColumnVisibilityChange: updaterOrValue => valueUpdater(updaterOrValue, columnVisibility),
   onRowSelectionChange: updaterOrValue => valueUpdater(updaterOrValue, rowSelection),
-
   getCoreRowModel: getCoreRowModel(),
 })
 </script>
@@ -123,7 +103,7 @@ const table = useVueTable({
           </template>
           <TableRow v-else>
             <TableCell :colspan="columns.length" class="h-24 text-center">
-              No results.
+              {{ $t('common.no_results') }}
             </TableCell>
           </TableRow>
         </TableBody>

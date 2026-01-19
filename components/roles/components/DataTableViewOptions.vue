@@ -25,11 +25,11 @@ const columns = computed(() => props.table.getAllColumns()
         class="ml-auto hidden h-8 lg:flex"
       >
         <Icon name="i-radix-icons-mixer-horizontal" class="mr-2 h-4 w-4" />
-        View
+        {{ $t('common.view_options') }}
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-[150px]">
-      <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+      <DropdownMenuLabel>{{ $t('common.toggle_columns') }}</DropdownMenuLabel>
       <DropdownMenuSeparator />
 
       <DropdownMenuCheckboxItem
@@ -39,7 +39,7 @@ const columns = computed(() => props.table.getAllColumns()
         :checked="column.getIsVisible()"
         @update:checked="(value) => column.toggleVisibility(!!value)"
       >
-        {{ column.id }}
+        {{ $t(`common.${column.id}`) }}
       </DropdownMenuCheckboxItem>
     </DropdownMenuContent>
   </DropdownMenu>
